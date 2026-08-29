@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install external tools (conversion integration tests)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ghostscript ffmpeg
+
+      - name: Syntax-check browser modules
+        run: |
+          node --check js/ascii.js
+          node --check js/renderer.js
+          node --check js/eps.js
+          node --check server.js
+          node --check scripts/make-sample.js
+          node -e "require('fs').copyFileSync('js/app.js','app.check.mjs')"
+          node -e "import('./app.check.mjs').then(()=>process.exit(0),e=>{if(e instanceof SyntaxError){console.error(e);process.exit(1)}}).catch(()=>process.exit(1))"
+
+      - name: Engine tests
+        run: npm run test:engine
+
+      - name: Server tests
+        run: npm run test:server
+
+  integrity:
+    name: Vendored pdf.js integrity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify vendored digests against vendor/pdfjs/README.md
+        run: |
+          hashes=$(sha256sum vendor/pdfjs/pdf.min.mjs vendor/pdfjs/pdf.worker.min.mjs)
+          echo "$hashes"
+          for expected in \
+            e0be3863c23c8af2305b16548febd58e7f8874a460253317d7771cddbc1c0f6d \
+            0613f41490dd6aaceed7a93fbbd38c85e6d6aa60474b6588c6e7709cfbe18cb3 ; do
+            echo "$hashes" | grep -q "$expected" || {
+              echo "vendor digest drift: $expected not found — update vendor/pdfjs/README.md" >&2
+              exit 1
+            }
+          done

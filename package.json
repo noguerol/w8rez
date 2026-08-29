@@ -1,0 +1,50 @@
+{
+  "name": "w8rez",
+  "version": "1.0.0",
+  "description": "Convert images, SVG, PDF, EPS and video to ASCII art — fully in your browser, with optional local conversion helpers. No build step, no npm dependencies, nothing uploaded.",
+  "keywords": [
+    "ascii-art",
+    "image-to-ascii",
+    "ascii",
+    "converter",
+    "video-to-ascii",
+    "pdf-to-ascii",
+    "svg",
+    "browser"
+  ],
+  "homepage": "https://github.com/w8rez/w8rez#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/w8rez/w8rez.git"
+  },
+  "bugs": {
+    "url": "https://github.com/w8rez/w8rez/issues"
+  },
+  "license": "MIT",
+  "author": "w8rez contributors",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/engine.test.js && node tests/server.test.js",
+    "test:engine": "node tests/engine.test.js",
+    "test:server": "node tests/server.test.js",
+    "sample": "node scripts/make-sample.js"
+  },
+  "files": [
+    "index.html",
+    "css/",
+    "js/",
+    "vendor/",
+    "samples/",
+    "scripts/",
+    "server.js",
+    "docs/",
+    "LICENSE",
+    "NOTICE.md",
+    "README.md",
+    "CHANGELOG.md"
+  ]
+}

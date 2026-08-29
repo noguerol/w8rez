@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>w8rez — image → ASCII</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo">
+    <pre aria-label="w8rez">█   █   ███   █████  █████  █████
+█   █  █   █  █   █  █          █
+█ █ █   ███   ████   ████     █
+██ ██  █   █  █  █   █       █
+█   █   ███   █   █  █████  █████</pre>
+  </div>
+  <div class="top-actions">
+    <span id="status" class="status" role="status" aria-live="polite">local · nothing leaves your machine</span>
+  </div>
+</header>
+
+<main class="layout">
+
+  <!-- ─────────────── controls ─────────────── -->
+  <aside class="panel controls">
+    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose or drop a file">
+      <div class="drop-icon">🖼</div>
+      <div class="drop-title">Drop an image here</div>
+      <div class="drop-sub">PNG · JPG · WebP · GIF · <b>SVG</b> · <b>PDF</b> · <b>EPS</b> · <b>video</b></div>
+      <input type="file" id="file-input" accept="image/*,.svg,.pdf,.eps,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.avi,.mkv,.flv,.wmv,.mpg,.mpeg,.ts,.mts,video/*" hidden>
+    </div>
+    <div id="file-name" class="file-name">—</div>
+    <div id="img-info" class="img-info"></div>
+
+    <section class="group">
+      <h2>Conversion</h2>
+
+      <label class="field">
+        <span>Width (characters)</span>
+        <div class="range-row">
+          <input type="range" id="width" min="20" max="300" step="5" value="100" aria-label="Output width in characters">
+          <output id="width-val">100</output>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Palette</span>
+        <select id="palette" aria-label="Palette"></select>
+      </label>
+
+      <label class="field">
+        <span>Custom palette <small>(dark → bright)</small></span>
+        <input type="text" id="custom-palette" value=" .:-=+*#%@" spellcheck="false" aria-label="Custom palette characters">
+      </label>
+
+      <label class="field" id="pdf-page-wrap" style="display:none">
+        <span>Page <output id="pdf-page-label"></output></span>
+        <input type="range" id="pdf-page" min="1" value="1" step="1" aria-label="PDF page">
+      </label>
+
+      <div class="checks">
+        <label><input type="checkbox" id="dynamic" checked> dynamic range</label>
+        <label><input type="checkbox" id="invert"> invert</label>
+        <label><input type="checkbox" id="auto-aspect" checked> automatic aspect</label>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>Text</h2>
+      <div class="checks">
+        <label><input type="checkbox" id="text-toggle"> overlay text on the art</label>
+      </div>
+      <div id="text-controls" style="display:none">
+        <label class="field">
+          <span>Number of strings <output id="text-count-val">1</output></span>
+          <input type="range" id="text-count" min="1" max="8" step="1" value="1" aria-label="Number of strings">
+        </label>
+        <div id="text-inputs"></div>
+        <div class="checks">
+          <label><input type="checkbox" id="text-random"> random placement</label>
+        </div>
+        <div class="row2">
+          <label class="field">
+            <span>Usage</span>
+            <select id="text-use" aria-label="Text placement">
+              <option value="once">Once (centred)</option>
+              <option value="repeat">Repeat</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Repetitions</span>
+            <input type="number" id="text-repeat" min="1" max="30" value="3" aria-label="Repetitions">
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section class="group" id="video-group" style="display:none">
+      <h2>Video</h2>
+      <video id="vid-source" controls muted playsinline
+             style="width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:.75rem;background:#000"></video>
+      <label class="field">
+        <span>Clip <small>(from / to)</small></span>
+        <div class="range-dual">
+          <div class="dual-fill" id="vid-fill"></div>
+          <input type="range" id="vid-start" min="0" max="100" value="0" step="0.01" aria-label="Clip start">
+          <input type="range" id="vid-end" min="0" max="100" value="100" step="0.01" aria-label="Clip end">
+        </div>
+        <div class="dual-labels">
+          <span id="vid-from">0:00.0</span>
+          <span id="vid-to">0:00.0</span>
+        </div>
+      </label>
+      <div class="row2">
+        <label class="field">
+          <span>Framerate</span>
+          <select id="vid-fps" aria-label="Framerate">
+            <option value="5">5 fps</option>
+            <option value="10" selected>10 fps</option>
+            <option value="15">15 fps</option>
+            <option value="24">24 fps</option>
+            <option value="30">30 fps</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Speed</span>
+          <select id="vid-speed" aria-label="Playback speed">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="2">2×</option>
+            <option value="4">4×</option>
+          </select>
+        </label>
+      </div>
+      <div class="field vid-summary">
+        <span>Clip: <b id="vid-clip">—</b> · Animation: <b id="vid-anim">—</b> · Frames: <b id="vid-count">—</b></span>
+        <small class="hint">palette / dynamic range / text are applied on generation; colour mode is live</small>
+      </div>
+      <div class="btn-row">
+        <button id="btn-vid-generate" class="btn primary">Generate frames</button>
+        <button id="btn-vid-play" class="btn">▶ Play</button>
+      </div>
+    </section>
+
+    <section class="group">
+      <h2>Render</h2>
+
+      <label class="field">
+        <span>Mode</span>
+        <select id="mode" aria-label="Colour mode">
+          <option value="mono">Monochrome</option>
+          <option value="fg">Colour — glyphs</option>
+          <option value="bg">Colour — background</option>
+          <option value="both">Colour — background + glyphs</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Font</span>
+        <select id="font-family" aria-label="Font family">
+          <option value="Consolas, Menlo, monospace">Consolas / Menlo</option>
+          <option value="'JetBrains Mono', Consolas, monospace">JetBrains Mono</option>
+          <option value="'Courier New', Courier, monospace">Courier New</option>
+          <option value="'Fira Code', Consolas, monospace">Fira Code</option>
+          <option value="monospace">generic monospace</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Size <output id="fs-val" style="display:inline">16</output>px</span>
+        <input type="range" id="font-size" min="8" max="40" step="1" value="16" aria-label="Font size">
+      </label>
+
+      <div class="row2">
+        <label class="field">
+          <span>Theme</span>
+          <select id="theme" aria-label="Theme">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Background</span>
+          <input type="color" id="bg-color" value="#000000" aria-label="Canvas background colour">
+        </label>
+      </div>
+    </section>
+  </aside>
+
+  <!-- ─────────────── output ─────────────── -->
+  <section class="panel output">
+    <div class="toolbar">
+      <nav class="tabs" aria-label="Output view">
+        <button class="tab active" data-target="tab-preview" aria-pressed="true">Preview</button>
+        <button class="tab" data-target="tab-code" aria-pressed="false">HTML</button>
+        <button class="tab" data-target="tab-txt" aria-pressed="false">TXT</button>
+      </nav>
+      <div class="tool-actions">
+        <button id="btn-vid-webm" class="btn" style="display:none">↓ .webm video</button>
+        <button id="btn-vid-mp4" class="btn" style="display:none">↓ .mp4 (ffmpeg)</button>
+        <button id="btn-vid-html" class="btn" style="display:none">↓ anim .html</button>
+        <button id="btn-copy" class="btn ghost">copy</button>
+        <button id="btn-txt" class="btn">↓ .txt</button>
+        <button id="btn-png" class="btn">↓ .png</button>
+        <button id="btn-html" class="btn primary">↓ .html</button>
+      </div>
+    </div>
+    <div id="meta" class="meta"></div>
+    <div id="frame-info" class="meta"></div>
+
+    <div id="tab-preview" class="tab-panel">
+      <div class="ascii-wrap">
+        <pre id="preview" aria-label="ASCII preview"></pre>
+      </div>
+    </div>
+
+    <div id="tab-code" class="tab-panel" style="display:none">
+      <textarea id="code-out" spellcheck="false" readonly aria-label="Generated HTML"></textarea>
+    </div>
+
+    <div id="tab-txt" class="tab-panel" style="display:none">
+      <textarea id="txt-out" spellcheck="false" readonly aria-label="Generated plain text"></textarea>
+    </div>
+  </section>
+
+</main>
+
+<script src="js/ascii.js"></script>
+<script src="js/renderer.js"></script>
+<script src="js/eps.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/w8rez/w8rez/discussions
+    about: Ask anything about using or hacking on w8rez.

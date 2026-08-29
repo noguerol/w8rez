@@ -205,6 +205,10 @@ let h264EncoderCache; // undefined = not probed yet, '' = none found
  * builds ship libx264 but not libopenh264, and vice versa elsewhere, so the
  * choice is probed once and cached. Override with W8REZ_H264_ENCODER.
  *
+ * The probe parses `ffmpeg -encoders` output: `-h encoder=<name>` exits 0
+ * even for unknown encoders on several ffmpeg versions, so the exit code is
+ * not a reliable signal.
+ *
  * @returns {string} encoder name, or '' when the ffmpeg build has none
  */
 function h264Encoder() {
@@ -215,19 +219,20 @@ function h264Encoder() {
     return h264EncoderCache;
   }
   h264EncoderCache = '';
-  for (const candidate of H264_ENCODER_PREFERENCE) {
-    try {
-      const probe = spawnSync('ffmpeg', ['-hide_banner', '-h', 'encoder=' + candidate], {
-        encoding: 'utf8',
-        timeout: 5000,
-      });
-      if (probe.status === 0) {
+  try {
+    const probe = spawnSync('ffmpeg', ['-hide_banner', '-encoders'], {
+      encoding: 'utf8',
+      timeout: 5000,
+    });
+    const listing = String(probe.stdout || '');
+    for (const candidate of H264_ENCODER_PREFERENCE) {
+      if (new RegExp('\\b' + candidate + '\\b').test(listing)) {
         h264EncoderCache = candidate;
         break;
       }
-    } catch (_) {
-      /* try the next candidate */
     }
+  } catch (_) {
+    /* leave the cache empty */
   }
   return h264EncoderCache;
 }

@@ -25,7 +25,9 @@ First public release.
 - Helper server (`server.js`, Node stdlib only): static serving plus
   `/api/health`, `/api/status`, EPS→PNG, PDF→PNG, video→MP4 and
   frames→MP4 endpoints with streaming bodies, magic-byte sniffing,
-  concurrency limits, size/time caps and guaranteed temp-file cleanup.
+  concurrency limits, size/time caps, automatic H.264 encoder selection
+  (libopenh264 → libx264, override with `W8REZ_H264_ENCODER`) and
+  guaranteed temp-file cleanup.
 - Security hardening across browser and server (see `docs/SECURITY.md`):
   loopback binding, Host allowlist, strict headers and CSP, allowlisted
   static serving, no-shell process execution, graceful shutdown.

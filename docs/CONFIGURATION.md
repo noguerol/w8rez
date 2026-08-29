@@ -20,6 +20,7 @@ file by design.
 | `W8REZ_FFMPEG_TIMEOUT_S` | `180` | 5–1800 | hard timeout for ffmpeg runs. |
 | `W8REZ_BODY_TIMEOUT_S` | `120` | 5–1800 | max time to receive an upload. |
 | `W8REZ_DISABLE_TOOLS` | *(unset)* | CSV | `gs`, `ffmpeg` and/or `all`. Disabled endpoints answer `501`. Use this if you do not need those formats or do not want the tools executed at all. |
+| `W8REZ_H264_ENCODER` | *(auto)* | name | Force a specific H.264 encoder for the MP4 endpoints. By default w8rez probes the ffmpeg build once and uses the first available of `libopenh264`, `libx264`. |
 | `W8REZ_LOG` | off | `1` | request log lines to stdout (`method path → status ms`). |
 
 ### Examples

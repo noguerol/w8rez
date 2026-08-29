@@ -170,6 +170,9 @@ const toolCache = new Map();
 /** gs and ffmpeg disagree on how to print their version. */
 const TOOL_VERSION_ARGS = { gs: ['--version'], ffmpeg: ['-version'] };
 
+/** H.264 encoders we can use, in preference order (first available wins). */
+const H264_ENCODER_PREFERENCE = ['libopenh264', 'libx264'];
+
 /**
  * Detects a tool once and caches the result. spawnSync with an argument
  * array — no shell is involved, so version strings can never be injected.
@@ -193,6 +196,40 @@ function detectTool(bin) {
 
 function toolsEnabled(bin) {
   return !TOOLS_DISABLED.has(bin) && !TOOLS_DISABLED.has('all');
+}
+
+let h264EncoderCache; // undefined = not probed yet, '' = none found
+
+/**
+ * Picks the H.264 encoder to use with this ffmpeg build. Ubuntu/Debian
+ * builds ship libx264 but not libopenh264, and vice versa elsewhere, so the
+ * choice is probed once and cached. Override with W8REZ_H264_ENCODER.
+ *
+ * @returns {string} encoder name, or '' when the ffmpeg build has none
+ */
+function h264Encoder() {
+  if (h264EncoderCache !== undefined) return h264EncoderCache;
+  const forced = (process.env.W8REZ_H264_ENCODER || '').trim();
+  if (forced) {
+    h264EncoderCache = forced;
+    return h264EncoderCache;
+  }
+  h264EncoderCache = '';
+  for (const candidate of H264_ENCODER_PREFERENCE) {
+    try {
+      const probe = spawnSync('ffmpeg', ['-hide_banner', '-h', 'encoder=' + candidate], {
+        encoding: 'utf8',
+        timeout: 5000,
+      });
+      if (probe.status === 0) {
+        h264EncoderCache = candidate;
+        break;
+      }
+    } catch (_) {
+      /* try the next candidate */
+    }
+  }
+  return h264EncoderCache;
 }
 
 /**
@@ -434,6 +471,13 @@ async function handleConvert(req, res, query, spec) {
     rejectJson(req, res, 501, { error: bin + ' is not installed on this machine.' });
     return;
   }
+  if (bin === 'ffmpeg' && !h264Encoder()) {
+    rejectJson(req, res, 501, {
+      error: 'this ffmpeg build has no usable H.264 encoder (tried: ' +
+        H264_ENCODER_PREFERENCE.join(', ') + ')',
+    });
+    return;
+  }
   try {
     await acquireSlot();
   } catch (err) {
@@ -588,7 +632,7 @@ function handleApi(req, res, url) {
         args: [
           '-hide_banner', '-loglevel', 'error', '-nostdin',
           '-i', input,
-          '-c:v', 'libopenh264', '-pix_fmt', 'yuv420p',
+          '-c:v', h264Encoder(), '-pix_fmt', 'yuv420p',
           '-movflags', '+faststart', '-an',
           '-max_muxing_queue_size', '1024',
           '-fs', String(MAX_OUTPUT),
@@ -607,7 +651,7 @@ function handleApi(req, res, url) {
           '-framerate', String(clampIntParam(query.get('fps'), 10, 1, 60)),
           '-f', 'image2pipe',
           '-i', input,
-          '-c:v', 'libopenh264', '-pix_fmt', 'yuv420p',
+          '-c:v', h264Encoder(), '-pix_fmt', 'yuv420p',
           '-movflags', '+faststart', '-an',
           '-max_muxing_queue_size', '1024',
           '-fs', String(MAX_OUTPUT),

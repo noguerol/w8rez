@@ -34,10 +34,21 @@ network.
 - **Four output formats** (plus three for video): plain text, a single-file
   HTML document, a rasterised PNG, and for video a self-contained HTML
   animation, a WebM recording, or a frame-exact MP4.
-- **Private by design.** No telemetry, no CDNs, no accounts, no uploads. The
-  helper server binds to `127.0.0.1`, and the browser side works without it.
+- **A dark, monochrome interface.** A terminal-style, greyscale-only shell:
+  a fixed control panel (drop zone, conversion groups that expand on demand
+  with a live summary of their state) next to a stage with view tabs, the
+  export actions, conversion metadata, and a preview with *View original* and
+  zoom controls. Sharp corners, no rounded chrome, no colour noise — the only
+  colour on screen comes from your own image.
+- **Private by design.** No telemetry, no CDNs, no webfonts, no accounts, no
+  uploads. The helper server binds to `127.0.0.1`, and the browser side works
+  without it.
 - **Zero npm dependencies.** Node's standard library only. pdf.js is vendored
   with recorded SHA-256 provenance.
+- **Accessible.** Every control is keyboard reachable with a visible focus
+  ring, groups use `aria-expanded`/`aria-controls`, the status line is a live
+  region, and native inputs stay in the DOM behind the custom widgets so
+  assistive technology sees the real values.
 
 ## Quick start
 
@@ -55,9 +66,18 @@ fallback, video transcoding and MP4 export).
 Other commands:
 
 ```bash
-npm test                # engine + server test suites (110 tests)
+npm test                # engine + server + UI unit suites
+npm run test:engine     # conversion engine only
+npm run test:server     # HTTP API and security controls only
+npm run test:ui         # accordion/stepper/zoom helpers only
+npm run test:e2e        # real-browser end-to-end suite (needs agent-browser)
 npm run sample          # regenerate samples/demo.png
 ```
+
+The end-to-end suite boots the server, drives the page in a real Chrome tab
+and checks every feature (inputs, engine controls, text overlay, video, tabs,
+exports, accessibility and greyscale-only styling). See
+[docs/TESTING.md](docs/TESTING.md).
 
 ## Outputs
 

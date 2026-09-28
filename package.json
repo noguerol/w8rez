@@ -1,6 +1,6 @@
 {
   "name": "w8rez",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Convert images, SVG, PDF, EPS and video to ASCII art — fully in your browser, with optional local conversion helpers. No build step, no npm dependencies, nothing uploaded.",
   "keywords": [
     "ascii-art",
@@ -28,9 +28,11 @@
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/engine.test.js && node tests/server.test.js",
+    "test": "node tests/engine.test.js && node tests/ui.test.js && node tests/server.test.js",
     "test:engine": "node tests/engine.test.js",
+    "test:ui": "node tests/ui.test.js",
     "test:server": "node tests/server.test.js",
+    "test:e2e": "bash tests/e2e.sh",
     "sample": "node scripts/make-sample.js"
   },
   "files": [

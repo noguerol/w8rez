@@ -20,6 +20,9 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
 
   const Ascii = window.W8rez.Ascii;
   const Renderer = window.W8rez.Renderer;
+  // Optional new-design shell (js/ui.js). Every call is guarded, so the app
+  // still works with the previous markup when the module is missing.
+  const UI = window.W8rez.UI;
 
   pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdfjs/pdf.worker.min.mjs';
 
@@ -56,6 +59,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     videoTimer: null,
     videoIdx: 0,
     textSeed: 1, // seed for the deterministic random text layout
+    zoom: 1, // preview zoom multiplier (driven by js/ui.js)
   };
 
   /* ------------------------------------------------------------------ *
@@ -66,9 +70,11 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     fileInput: $('#file-input'),
     fileName: $('#file-name'),
     imgInfo: $('#img-info'),
+    fileCard: $('#file-card'),
 
     palette: $('#palette'),
     customPalette: $('#custom-palette'),
+    customPaletteWrap: $('#custom-palette-wrap'),
     width: $('#width'),
     widthVal: $('#width-val'),
     dynamic: $('#dynamic'),
@@ -112,6 +118,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
 
     tabs: $$('.tab'),
     preview: $('#preview'),
+    originalView: $('#original-view'),
     codeOut: $('#code-out'),
     txtOut: $('#txt-out'),
     meta: $('#meta'),
@@ -124,6 +131,13 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
   };
 
   const STATUS_ERROR = '#ff7b72';
+
+  /** Writes the Generate button label without destroying its icon. */
+  function setGenerateLabel(text) {
+    const label = document.getElementById('btn-vid-generate-label');
+    if (label) label.textContent = text;
+    else els.btnVidGenerate.textContent = text;
+  }
 
   /** Sets the status line; resets the error colour. */
   function setStatus(message) {
@@ -160,11 +174,13 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     }
     const isSvg = SVG_RE.test(file.type) || SVG_RE.test(file.name);
     const reader = new FileReader();
-    reader.onload = (e) => {
-      if (isSvg) decodeSvg(e.target.result, file.name);
-      else decodeRaster(e.target.result, file.name);
-    };
     reader.onerror = () => fail('The file could not be read.');
+    if (isSvg) {
+      reader.onload = (e) => decodeSvg(String(e.target.result), file.name);
+      reader.readAsText(file);
+      return;
+    }
+    reader.onload = (e) => decodeRaster(e.target.result, file.name);
     reader.readAsDataURL(file);
   }
 
@@ -177,39 +193,40 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
 
   /**
    * SVG: rasterised by drawing it onto a canvas via a data URL. When the SVG
-   * lacks a size, its viewBox (or 512×512) is used.
+   * lacks a size, its viewBox (or 512×512) is used. The markup arrives as
+   * text: fetching a data: URL is blocked by our own CSP (connect-src 'self'),
+   * and the source text is what we need anyway.
    */
-  function decodeSvg(dataUrl, name) {
-    fetch(dataUrl)
-      .then((r) => r.text())
-      .then((svgText) => {
-        let { width, height } = svgDims(svgText);
-        if (!width || !height) {
-          const vb = (svgText.match(/viewBox\s*=\s*["']([^"']+)["']/) || [])[1];
-          if (vb) {
-            const p = vb.trim().split(/\s+/).map(Number);
-            width = p[2] - p[0];
-            height = p[3] - p[1];
-          }
+  function decodeSvg(svgText, name) {
+    try {
+      let { width, height } = svgDims(svgText);
+      if (!width || !height) {
+        const vb = (svgText.match(/viewBox\s*=\s*["']([^"']+)["']/) || [])[1];
+        if (vb) {
+          const p = vb.trim().split(/\s+/).map(Number);
+          width = p[2] - p[0];
+          height = p[3] - p[1];
         }
-        width = width || 512;
-        height = height || 512;
+      }
+      width = width || 512;
+      height = height || 512;
 
-        // Normalise with an explicit size (avoids rasterisation failures)
-        const norm = svgText.replace(/<svg([^>]*?)>/, (m, attrs) => {
-          const a = attrs
-            .replace(/\swidth\s*=\s*["'][^"']*["']/i, '')
-            .replace(/\sheight\s*=\s*["'][^"']*["']/i, '')
-            .replace(/\sviewBox\s*=\s*["'][^"']*["']/i, '');
-          return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"${a}>`;
-        });
+      // Normalise with an explicit size (avoids rasterisation failures)
+      const norm = svgText.replace(/<svg([^>]*?)>/, (m, attrs) => {
+        const a = attrs
+          .replace(/\swidth\s*=\s*["'][^"']*["']/i, '')
+          .replace(/\sheight\s*=\s*["'][^"']*["']/i, '')
+          .replace(/\sviewBox\s*=\s*["'][^"']*["']/i, '');
+        return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"${a}>`;
+      });
 
-        const img = new Image();
-        img.onload = () => setImage(img, name);
-        img.onerror = () => fail('SVG could not be rasterised: check that it is valid and free of external references.');
-        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(norm);
-      })
-      .catch(() => fail('The SVG could not be read.'));
+      const img = new Image();
+      img.onload = () => setImage(img, name);
+      img.onerror = () => fail('SVG could not be rasterised: check that it is valid and free of external references.');
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(norm);
+    } catch (e) {
+      fail('The SVG could not be read.');
+    }
   }
 
   function svgDims(text) {
@@ -225,8 +242,8 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     const h = el.naturalHeight || el.height;
     state.img = { el, w, h, name };
     state.raster = null; // invalidate the pixel cache
-    els.fileName.textContent = name;
-    els.imgInfo.textContent = `${w} × ${h} px`;
+    showFileCard(name, `${w} × ${h} px`);
+    syncOriginalAvailable();
     setStatus('Image loaded ✓');
     render();
   }
@@ -391,15 +408,12 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
   }
 
   function loadVideo(file, depth) {
-    stopVideoAnim();
+    // leaves any previous video (revokes its object URL) before loading
+    leaveVideoMode();
     state.img = null; // leave image mode
     state.raster = null;
     state.pdf = null;
-    if (state.video && state.video.url) {
-      try {
-        URL.revokeObjectURL(state.video.url);
-      } catch (_) { /* already revoked */ }
-    }
+    syncOriginalAvailable();
     const url = URL.createObjectURL(file);
     const video = document.createElement('video');
     video.src = url;
@@ -415,9 +429,13 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
         state.videoMeta = null;
         state.videoIdx = 0;
         els.videoGroup.style.display = '';
-        els.fileName.textContent = file.name;
-        els.imgInfo.textContent =
-          video.videoWidth + ' × ' + video.videoHeight + ' px · ' + fmtTime(video.duration);
+        showFileCard(
+          file.name,
+          video.videoWidth + ' × ' + video.videoHeight + ' px · ' + fmtTime(video.duration)
+        );
+        syncOriginalAvailable();
+        if (UI && UI.openAccordion) UI.openAccordion('acc-video');
+        syncSummaries();
         setStatus('Video loaded ✓');
         els.vidSource.src = url;
         els.vidStart.max = video.duration;
@@ -425,7 +443,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
         els.vidEnd.max = video.duration;
         els.vidEnd.value = video.duration;
         els.btnVidGenerate.disabled = false;
-        els.btnVidGenerate.textContent = 'Generate frames';
+        setGenerateLabel('Generate frames');
         setVideoGenerating(false);
         els.btnVidWebm.style.display = 'none';
         els.btnVidMp4.style.display = 'none';
@@ -549,14 +567,12 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
    */
   function setVideoGenerating(on, total, done) {
     els.btnVidGenerate.disabled = on;
-    if (on) {
-      els.btnVidGenerate.replaceChildren();
-      const spinner = document.createElement('span');
-      spinner.className = 'spinner';
-      els.btnVidGenerate.append(spinner, ' Generating…' + (total ? ' ' + (done || 0) + '/' + total : ''));
-    } else {
-      els.btnVidGenerate.textContent = 'Generate frames';
-    }
+    els.btnVidGenerate.classList.toggle('busy', !!on);
+    const spinner = els.btnVidGenerate.querySelector('.spinner');
+    if (spinner) spinner.hidden = !on;
+    setGenerateLabel(
+      on ? 'Generating…' + (total ? ' ' + (done || 0) + '/' + total : '') : 'Generate frames'
+    );
     const hasFrames = !!(state.videoFrames && state.videoFrames.length >= 2);
     els.btnVidPlay.disabled = on || !hasFrames;
     els.btnVidPlay.title = els.btnVidPlay.disabled
@@ -615,6 +631,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     els.btnVidWebm.style.display = '';
     els.btnVidMp4.style.display = '';
     els.btnVidHtml.style.display = '';
+    syncSummaries();
     if (frames.length) drawFrame(frames[0], 0);
   }
 
@@ -622,6 +639,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     renderPreviewHtml(grid);
     els.frameInfo.textContent =
       'frame ' + (i + 1) + ' / ' + (state.videoFrames ? state.videoFrames.length : '—');
+    updateBadge(grid);
   }
 
   function playVideoPreview() {
@@ -823,6 +841,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
       const g = state.videoFrames[idx];
       renderPreviewHtml(g);
       els.txtOut.value = Ascii.gridToText(g);
+      updateBadge(g);
       return;
     }
     if (!state.img) return;
@@ -850,6 +869,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     renderPreview();
     renderCode();
     renderMeta();
+    updateBadge();
   }
 
   /** Reads the text controls and builds the stampText options. */
@@ -895,9 +915,12 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
       wrap.style.background = state.bgColor;
       wrap.style.borderColor = light ? '#d0d7de' : '';
     }
+    // the zoom multiplier is applied on top of the base size from #font-size
+    const baseSize = parseInt(els.fontSize.value, 10) || 16;
+    const zoom = state.zoom > 0 ? state.zoom : 1;
     els.preview.style.fontFamily = els.fontFamily.value;
-    els.preview.style.fontSize = els.fontSize.value + 'px';
-    els.preview.style.lineHeight = els.fontSize.value + 'px';
+    els.preview.style.fontSize = baseSize * zoom + 'px';
+    els.preview.style.lineHeight = baseSize * zoom + 'px';
     els.preview.style.color = light ? Renderer.THEMES.light.preFg : Renderer.THEMES.dark.preFg;
   }
 
@@ -945,7 +968,12 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
   }
 
   function syncPaletteInput() {
-    els.customPalette.disabled = els.palette.value !== 'custom';
+    const isCustom = els.palette.value === 'custom';
+    els.customPalette.disabled = !isCustom;
+    if (els.customPaletteWrap) {
+      els.customPaletteWrap.hidden = !isCustom;
+      els.customPaletteWrap.style.display = isCustom ? '' : 'none';
+    }
   }
 
   /** Re-measures the active font's aspect ratio (called on font changes). */
@@ -1011,6 +1039,121 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
   }
 
   /* ------------------------------------------------------------------ *
+   *  UI bridge (js/ui.js) — optional, additive, always guarded
+   * ------------------------------------------------------------------ */
+
+  /** Updates the file card (name + metadata) in the control panel. */
+  function showFileCard(name, info) {
+    els.fileName.textContent = name;
+    els.imgInfo.textContent = info;
+    if (els.fileCard) els.fileCard.hidden = false;
+    if (UI && UI.setFileCard) UI.setFileCard(name, info);
+  }
+
+  /** Hides the file card and restores the empty placeholder text. */
+  function hideFileCard() {
+    els.fileName.textContent = '—';
+    els.imgInfo.textContent = '';
+    if (els.fileCard) els.fileCard.hidden = true;
+    if (UI && UI.setFileCard) UI.setFileCard('', '');
+  }
+
+  /** Tells the shell whether "View original" has a source to show. */
+  function syncOriginalAvailable() {
+    if (UI && UI.setOriginalAvailable) UI.setOriginalAvailable(!!(state.img || state.video));
+  }
+
+  /** Preview badge: grid size when there is a grid, else the file name. */
+  function updateBadge(grid) {
+    if (!UI || !UI.setBadge) return;
+    const g = grid || state.grid;
+    if (g) UI.setBadge({ cols: g.cols, rows: g.rows });
+    else if (state.video && state.video.fileName) UI.setBadge({ name: state.video.fileName });
+    else if (state.img && state.img.name) UI.setBadge({ name: state.img.name });
+    else UI.setBadge('No file');
+  }
+
+  /** Accordion summaries (text / video / render). */
+  function syncSummaries() {
+    if (!UI || !UI.setSummaries) return;
+    UI.setSummaries({
+      text: {
+        enabled: !!(els.textToggle && els.textToggle.checked),
+        count: els.textCount ? els.textCount.value : 1,
+      },
+      video: {
+        clip: !!(state.video && state.video.fileName),
+        frames: state.videoFrames ? state.videoFrames.length : 0,
+      },
+      render: { mode: els.mode.value, size: els.fontSize.value },
+    });
+  }
+
+  /** Copies the current source (image/canvas or video frame) to #original-view. */
+  function drawOriginalView() {
+    const canvas = els.originalView;
+    if (!canvas) return;
+    const src = state.img ? state.img.el : state.video ? state.video.el : null;
+    if (!src) return;
+    const w = state.img ? state.img.w : state.video.el.videoWidth || src.width;
+    const h = state.img ? state.img.h : state.video.el.videoHeight || src.height;
+    if (!w || !h) return;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    try {
+      ctx.drawImage(src, 0, 0, w, h);
+    } catch (_) {
+      // the browser may refuse a frame that is not ready yet
+    }
+  }
+
+  /** Releases the loaded file and returns to the empty state. */
+  function clearFile() {
+    stopVideoAnim();
+    leaveVideoMode();
+    if (state.pdf && typeof state.pdf.destroy === 'function') {
+      try {
+        state.pdf.destroy();
+      } catch (_) {
+        // already closed
+      }
+    }
+    state.img = null;
+    state.grid = null;
+    state.raster = null;
+    state.pdf = null;
+    state.pdfFileName = null;
+    state.videoFrames = null;
+    state.videoMeta = null;
+    state.videoIdx = 0;
+
+    els.preview.innerHTML = '';
+    els.codeOut.value = '';
+    els.txtOut.value = '';
+    els.meta.textContent = '';
+    els.frameInfo.textContent = '';
+    if (els.videoGroup) els.videoGroup.style.display = 'none';
+    if (els.pdfPageWrap) els.pdfPageWrap.style.display = 'none';
+    if (els.vidSource) {
+      try {
+        els.vidSource.pause();
+        els.vidSource.removeAttribute('src');
+        els.vidSource.load();
+      } catch (_) {
+        // nothing to release
+      }
+    }
+    if (els.fileInput) els.fileInput.value = '';
+
+    hideFileCard();
+    syncOriginalAvailable();
+    updateBadge();
+    syncSummaries();
+    setStatus('Ready');
+  }
+
+  /* ------------------------------------------------------------------ *
    *  Events
    * ------------------------------------------------------------------ */
 
@@ -1049,19 +1192,39 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
   els.dynamic.addEventListener('change', scheduleRender);
   els.autoAspect.addEventListener('change', scheduleRender);
   els.invert.addEventListener('change', scheduleRender);
-  els.mode.addEventListener('change', scheduleRender);
+  els.mode.addEventListener('change', () => {
+    syncSummaries();
+    scheduleRender();
+  });
   els.theme.addEventListener('change', scheduleRender);
+  // keep the header theme toggle in sync with the Render select
+  els.theme.addEventListener('change', () => {
+    if (UI && UI.syncThemeToggle) UI.syncThemeToggle();
+  });
   els.fontFamily.addEventListener('change', () => {
     remeasureAspect(); // the aspect ratio depends on the active font
     scheduleRender();
   });
   els.fontSize.addEventListener('input', () => {
     els.fsVal.textContent = els.fontSize.value;
+    syncSummaries();
     scheduleRender();
   });
   els.bgColor.addEventListener('input', () => {
     state.bgColor = els.bgColor.value;
     scheduleRender();
+  });
+
+  // new-design shell events (dispatched by js/ui.js; every handler is safe
+  // even when that module is absent)
+  document.addEventListener('w8rez:clearfile', clearFile);
+  document.addEventListener('w8rez:zoom', (e) => {
+    const z = e && e.detail ? parseFloat(e.detail.zoom) : 1;
+    state.zoom = isFinite(z) && z > 0 ? z : 1;
+    applyPreviewStyles();
+  });
+  document.addEventListener('w8rez:vieworiginal', (e) => {
+    if (e && e.detail && e.detail.on) drawOriginalView();
   });
 
   // video: dual range, fps, speed, generation and playback
@@ -1078,6 +1241,14 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     const fps = parseInt(els.vidFps.value, 10);
     const speed = parseFloat(els.vidSpeed.value);
     els.vidAnim.textContent = fmtTime((e - s) / speed);
+    // Estimated frame count; the real one is written after generation.
+    els.vidCount.textContent = String(frameEstimate(s, e, fps, speed));
+  }
+
+  /** Frames a clip would produce: animation duration × framerate, capped. */
+  function frameEstimate(start, end, fps, speed) {
+    const animDur = Math.max(0, end - start) / (speed || 1);
+    return Math.min(LIMITS.MAX_FRAMES, Math.max(1, Math.round(animDur * fps)));
   }
   els.vidStart.addEventListener('input', () => {
     if (!state.video) return;
@@ -1107,6 +1278,8 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
   // text overlay
   els.textToggle.addEventListener('change', () => {
     els.textControls.style.display = els.textToggle.checked ? '' : 'none';
+    if (els.textToggle.checked && UI && UI.openAccordion) UI.openAccordion('acc-text');
+    syncSummaries();
     render();
   });
   els.textCount.addEventListener('input', () => {
@@ -1116,6 +1289,7 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
       const f = document.getElementById('text-field-' + i);
       if (f) f.style.display = i <= n ? '' : 'none';
     }
+    syncSummaries();
     render();
   });
   els.textUse.addEventListener('change', render);
@@ -1138,8 +1312,12 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
   // tabs
   els.tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
-      els.tabs.forEach((t) => t.classList.remove('active'));
+      els.tabs.forEach((t) => {
+        t.classList.remove('active');
+        t.setAttribute('aria-pressed', String(t === tab));
+      });
       tab.classList.add('active');
+      tab.setAttribute('aria-pressed', 'true');
       $$('.tab-panel').forEach((p) => {
         p.style.display = p.id === tab.dataset.target ? 'block' : 'none';
       });
@@ -1218,4 +1396,21 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
 
   // measure the real glyph ratio of the active font (web) — fallback: 0.5
   remeasureAspect();
+
+  // new-design shell (js/ui.js): accordions, steppers, segmented controls,
+  // tabs, theme toggle, zoom and the "view original" switch. Optional: the
+  // app must keep working when the module is missing or throws.
+  if (UI) {
+    try {
+      UI.init(document);
+    } catch (e) {
+      // ignored on purpose: the previous markup still works
+    }
+  }
+  if (UI && UI.getZoom) {
+    const z = parseFloat(UI.getZoom());
+    if (isFinite(z) && z > 0) state.zoom = z;
+  }
+  syncSummaries();
+  updateBadge();
 })();

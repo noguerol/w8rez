@@ -3,22 +3,72 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="dark">
 <title>w8rez — image → ASCII</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<header class="topbar">
-  <div class="logo">
-    <pre aria-label="w8rez">█   █   ███   █████  █████  █████
-█   █  █   █  █   █  █          █
-█ █ █   ███   ████   ████     █
-██ ██  █   █  █  █   █       █
-█   █   ███   █   █  █████  █████</pre>
+<!-- icon sprite (lucide 0.4x, stroke-width 2) -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-image-plus" viewBox="0 0 24 24"><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/><circle cx="9" cy="9" r="2"/><path d="M16 5h6M19 2v6"/></symbol>
+  <symbol id="i-folder-open" viewBox="0 0 24 24"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.2 10H20a2 2 0 0 1 1.9 2.6l-1.9 6a2 2 0 0 1-1.9 1.4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.7.9L11 6"/></symbol>
+  <symbol id="i-file-image" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><circle cx="10" cy="13" r="2"/><path d="m20 17-1.5-1.5a2 2 0 0 0-2.8 0L9 22"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M10 5H3M21 12H3M21 19H3M14 3v4M8 10v4M16 17v4"/></symbol>
+  <symbol id="i-type" viewBox="0 0 24 24"><path d="M12 4v16M4 7V4h16v3M9 20h6"/></symbol>
+  <symbol id="i-film" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M17 3v18M3 7.5h4M3 12h18M3 16.5h4M17 7.5h4M17 16.5h4"/></symbol>
+  <symbol id="i-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.7-.7 1.7-1.7 0-.4-.2-.8-.4-1.1-.3-.3-.4-.7-.4-1.1 0-.9.7-1.7 1.7-1.7H16c3.3 0 6-2.7 6-6 0-4.4-4.5-8-10-8Z"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m6 3 14 9-14 9V3Z"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+  <symbol id="i-image" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+  <symbol id="i-file-code" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 12l-2 2 2 2M14 12l2 2-2 2"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.2 3.1a.5.5 0 0 0 .8-.4V8.3a.5.5 0 0 0-.8-.4L16 11"/><rect width="14" height="12" x="2" y="6" rx="2"/></symbol>
+  <symbol id="i-clapper" viewBox="0 0 24 24"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3ZM6.2 5.3l3.1 3.9M12.4 3.4l3.1 4M20 12v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5"/></symbol>
+  <symbol id="i-file-play" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 11v6l4.5-3Z"/></symbol>
+  <symbol id="i-wand" viewBox="0 0 24 24"><path d="m21.6 12.6-9.2 9.2a2 2 0 0 1-2.8 0l-1.2-1.2a2 2 0 0 1 0-2.8l9.2-9.2a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8Z"/><path d="m14 7 3 3M5 6v4M3 8h4M10.5 2.5 11 4M19 13h2"/></symbol>
+  <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9 9 0 0 0-6.4 2.6L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.1 12a11 11 0 0 1 19.8 0 11 11 0 0 1-19.8 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-maximize" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></symbol>
+  <symbol id="i-zoom-in" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M11 8v6M8 11h6"/></symbol>
+  <symbol id="i-zoom-out" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3M8 11h6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+</svg>
+
+<header class="appbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true">W</span>
+    <span class="brand-name">w8rez</span>
   </div>
-  <div class="top-actions">
-    <span id="status" class="status" role="status" aria-live="polite">local · nothing leaves your machine</span>
+  <span class="chip chip-local"><span class="dot" aria-hidden="true"></span>local · nothing leaves your machine</span>
+  <div class="appbar-actions">
+    <details class="popover" id="help">
+      <summary class="icon-btn" aria-label="Help and shortcuts" title="Help and shortcuts">
+        <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>
+      </summary>
+      <div class="popover-body" role="note">
+        <p class="popover-title">Everything runs locally</p>
+        <p>Images, SVG, PDF, EPS and video are converted in your browser. Nothing is uploaded; the local server binary (Ghostscript/ffmpeg) is only used for EPS, PDF and non-native video.</p>
+        <p class="popover-title">Shortcuts</p>
+        <ul>
+          <li><kbd>Enter</kbd> / <kbd>Space</kbd> on the drop zone → choose a file</li>
+          <li><kbd>Ctrl</kbd>+<kbd>C</kbd> on the toolbar → copy the current output</li>
+          <li>Drag a file anywhere over the drop zone</li>
+        </ul>
+      </div>
+    </details>
+    <button type="button" id="btn-theme-toggle" class="theme-toggle" aria-pressed="false" title="Switch the preview between dark and light">
+      <svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg>
+      <span id="btn-theme-label">Dark</span>
+    </button>
   </div>
 </header>
 
@@ -26,204 +76,307 @@
 
   <!-- ─────────────── controls ─────────────── -->
   <aside class="panel controls">
-    <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose or drop a file">
-      <div class="drop-icon">🖼</div>
-      <div class="drop-title">Drop an image here</div>
-      <div class="drop-sub">PNG · JPG · WebP · GIF · <b>SVG</b> · <b>PDF</b> · <b>EPS</b> · <b>video</b></div>
-      <input type="file" id="file-input" accept="image/*,.svg,.pdf,.eps,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.avi,.mkv,.flv,.wmv,.mpg,.mpeg,.ts,.mts,video/*" hidden>
+    <div class="panel-head">
+      <span class="panel-title">Controls</span>
+      <button type="button" id="btn-reset" class="ghost-btn" title="Reset every control to its default">
+        <svg class="icon" aria-hidden="true"><use href="#i-rotate"/></svg>Reset
+      </button>
     </div>
-    <div id="file-name" class="file-name">—</div>
-    <div id="img-info" class="img-info"></div>
 
-    <section class="group">
-      <h2>Conversion</h2>
+    <div class="panel-scroll">
+      <section class="drop-section">
+        <div id="drop" class="drop" tabindex="0" role="button" aria-label="Choose or drop a file">
+          <svg class="icon drop-icon" aria-hidden="true"><use href="#i-image-plus"/></svg>
+          <span class="drop-title">Drop an image or video</span>
+          <span class="drop-sub">PNG · JPG · WebP · GIF · SVG · PDF · EPS · MP4</span>
+          <span class="drop-btn"><svg class="icon" aria-hidden="true"><use href="#i-folder-open"/></svg>Choose file</span>
+          <span class="drop-hint">or drag a file onto this area</span>
+          <input type="file" id="file-input" aria-label="Choose an image or video file" accept="image/*,.svg,.pdf,.eps,.mp4,.webm,.ogg,.ogv,.mov,.m4v,.avi,.mkv,.flv,.wmv,.mpg,.mpeg,.ts,.mts,video/*" hidden>
+        </div>
+        <div id="file-card" class="file-card" hidden>
+          <svg class="icon" aria-hidden="true"><use href="#i-file-image"/></svg>
+          <span class="file-texts">
+            <span id="file-name" class="file-name">—</span>
+            <span id="img-info" class="img-info"></span>
+          </span>
+          <button type="button" id="file-clear" class="icon-btn" aria-label="Remove the loaded file" title="Remove the loaded file">
+            <svg class="icon" aria-hidden="true"><use href="#i-x"/></svg>
+          </button>
+        </div>
+      </section>
 
-      <label class="field">
-        <span>Width (characters)</span>
-        <div class="range-row">
+      <section class="section" id="sec-conversion">
+        <div class="section-head">
+          <svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg>
+          <span class="section-title">Conversion</span>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Width <output id="width-val" class="field-value">100</output><span class="unit">cols</span></span>
           <input type="range" id="width" min="20" max="300" step="5" value="100" aria-label="Output width in characters">
-          <output id="width-val">100</output>
-        </div>
-      </label>
-
-      <label class="field">
-        <span>Palette</span>
-        <select id="palette" aria-label="Palette"></select>
-      </label>
-
-      <label class="field">
-        <span>Custom palette <small>(dark → bright)</small></span>
-        <input type="text" id="custom-palette" value=" .:-=+*#%@" spellcheck="false" aria-label="Custom palette characters">
-      </label>
-
-      <label class="field" id="pdf-page-wrap" style="display:none">
-        <span>Page <output id="pdf-page-label"></output></span>
-        <input type="range" id="pdf-page" min="1" value="1" step="1" aria-label="PDF page">
-      </label>
-
-      <div class="checks">
-        <label><input type="checkbox" id="dynamic" checked> dynamic range</label>
-        <label><input type="checkbox" id="invert"> invert</label>
-        <label><input type="checkbox" id="auto-aspect" checked> automatic aspect</label>
-      </div>
-    </section>
-
-    <section class="group">
-      <h2>Text</h2>
-      <div class="checks">
-        <label><input type="checkbox" id="text-toggle"> overlay text on the art</label>
-      </div>
-      <div id="text-controls" style="display:none">
-        <label class="field">
-          <span>Number of strings <output id="text-count-val">1</output></span>
-          <input type="range" id="text-count" min="1" max="8" step="1" value="1" aria-label="Number of strings">
         </label>
-        <div id="text-inputs"></div>
+
+        <label class="field">
+          <span class="field-label">Palette</span>
+          <span class="select-wrap">
+            <select id="palette" aria-label="Palette"></select>
+            <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+          </span>
+        </label>
+
+        <label class="field" id="custom-palette-wrap">
+          <span class="field-label">Custom palette <small>(dark → bright)</small></span>
+          <input type="text" id="custom-palette" class="text-input" value=" .:-=+*#%@" spellcheck="false" aria-label="Custom palette characters">
+        </label>
+
+        <label class="field" id="pdf-page-wrap" style="display:none">
+          <span class="field-label">Page <output id="pdf-page-label" class="field-value"></output></span>
+          <input type="range" id="pdf-page" min="1" value="1" step="1" aria-label="PDF page">
+        </label>
+
         <div class="checks">
-          <label><input type="checkbox" id="text-random"> random placement</label>
+          <label class="check"><input type="checkbox" id="dynamic" checked><span class="box"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span>Dynamic range</label>
+          <label class="check"><input type="checkbox" id="invert"><span class="box"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span>Invert</label>
+          <label class="check"><input type="checkbox" id="auto-aspect" checked><span class="box"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span>Automatic aspect</label>
         </div>
-        <div class="row2">
-          <label class="field">
-            <span>Usage</span>
-            <select id="text-use" aria-label="Text placement">
-              <option value="once">Once (centred)</option>
-              <option value="repeat">Repeat</option>
-            </select>
+      </section>
+
+      <section class="acc" id="acc-text">
+        <button type="button" class="acc-head" aria-expanded="false" aria-controls="acc-text-body">
+          <svg class="icon acc-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+          <svg class="icon" aria-hidden="true"><use href="#i-type"/></svg>
+          <span class="acc-title">Text overlay</span>
+          <span class="acc-spacer"></span>
+          <span class="acc-summary" id="sum-text">off</span>
+        </button>
+        <div class="acc-body" id="acc-text-body">
+          <label class="switch-row">
+            <span>Overlay text on the art</span>
+            <input type="checkbox" id="text-toggle" class="switch" role="switch">
           </label>
+          <div id="text-controls" style="display:none">
+            <div class="field">
+              <span class="field-label">Strings <span class="stepper">
+                <button type="button" class="stepper-btn" data-stepper="text-count" data-step="-1" aria-label="Fewer strings"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button>
+                <output id="text-count-val" class="stepper-value">1</output>
+                <button type="button" class="stepper-btn" data-stepper="text-count" data-step="1" aria-label="More strings"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
+              </span></span>
+              <input type="range" id="text-count" min="1" max="8" step="1" value="1" class="sr-only" aria-label="Number of strings">
+            </div>
+            <div id="text-inputs" class="text-inputs"></div>
+            <label class="check"><input type="checkbox" id="text-random"><span class="box"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span>Random placement (fixed seed)</label>
+            <div class="row2">
+              <div class="field">
+                <span class="field-label">Usage</span>
+                <div class="segmented" id="text-use-seg" role="group" aria-label="Text usage">
+                  <button type="button" class="seg" data-select="text-use" data-value="once" aria-pressed="true">Once</button>
+                  <button type="button" class="seg" data-select="text-use" data-value="repeat" aria-pressed="false">Repeat</button>
+                </div>
+                <select id="text-use" class="sr-only" aria-label="Text placement">
+                  <option value="once">Once (centred)</option>
+                  <option value="repeat">Repeat</option>
+                </select>
+              </div>
+              <div class="field">
+                <span class="field-label">Repeat <span class="stepper">
+                  <button type="button" class="stepper-btn" data-stepper="text-repeat" data-step="-1" aria-label="Fewer repetitions"><svg class="icon" aria-hidden="true"><use href="#i-minus"/></svg></button>
+                  <output id="text-repeat-val" class="stepper-value">3</output>
+                  <button type="button" class="stepper-btn" data-stepper="text-repeat" data-step="1" aria-label="More repetitions"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg></button>
+                </span></span>
+                <input type="number" id="text-repeat" min="1" max="30" value="3" class="sr-only" aria-label="Repetitions">
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="acc" id="acc-video">
+        <button type="button" class="acc-head" aria-expanded="false" aria-controls="acc-video-body">
+          <svg class="icon acc-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+          <svg class="icon" aria-hidden="true"><use href="#i-film"/></svg>
+          <span class="acc-title">Video clip</span>
+          <span class="acc-spacer"></span>
+          <span class="acc-summary" id="sum-video">no clip</span>
+        </button>
+        <div class="acc-body" id="acc-video-body">
+          <div id="video-group" style="display:none">
+            <video id="vid-source" controls muted playsinline class="vid-source"></video>
+            <div class="field">
+              <span class="field-label">Clip <output class="field-value" id="vid-range-label"></output> <small>(from / to)</small></span>
+              <div class="range-dual">
+                <div class="dual-fill" id="vid-fill"></div>
+                <input type="range" id="vid-start" min="0" max="100" value="0" step="0.01" aria-label="Clip start">
+                <input type="range" id="vid-end" min="0" max="100" value="100" step="0.01" aria-label="Clip end">
+              </div>
+              <div class="dual-labels">
+                <span id="vid-from">0:00.0</span>
+                <span id="vid-to">0:00.0</span>
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <span class="field-label">Framerate</span>
+                <span class="select-wrap">
+                  <select id="vid-fps" aria-label="Framerate">
+                    <option value="5">5 fps</option>
+                    <option value="10" selected>10 fps</option>
+                    <option value="15">15 fps</option>
+                    <option value="24">24 fps</option>
+                    <option value="30">30 fps</option>
+                  </select>
+                  <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </span>
+              </div>
+              <div class="field">
+                <span class="field-label">Speed</span>
+                <span class="select-wrap">
+                  <select id="vid-speed" aria-label="Playback speed">
+                    <option value="0.25">0.25×</option>
+                    <option value="0.5">0.5×</option>
+                    <option value="1" selected>1×</option>
+                    <option value="2">2×</option>
+                    <option value="4">4×</option>
+                  </select>
+                  <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                </span>
+              </div>
+            </div>
+            <div class="summary-card">
+              <span>Clip <b id="vid-clip">—</b> · Animation <b id="vid-anim">—</b> · Frames <b id="vid-count">—</b></span>
+              <small class="hint">palette / dynamic range / text are applied on generation; colour mode is live</small>
+            </div>
+            <div class="btn-row">
+              <button type="button" id="btn-vid-generate" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-wand"/></svg><span class="spinner" hidden></span><span id="btn-vid-generate-label">Generate frames</span></button>
+              <button type="button" id="btn-vid-play" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-play"/></svg>Play</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="acc" id="acc-render">
+        <button type="button" class="acc-head" aria-expanded="false" aria-controls="acc-render-body">
+          <svg class="icon acc-chevron" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+          <svg class="icon" aria-hidden="true"><use href="#i-palette"/></svg>
+          <span class="acc-title">Render &amp; output</span>
+          <span class="acc-spacer"></span>
+          <span class="acc-summary" id="sum-render">mono · 16 px</span>
+        </button>
+        <div class="acc-body" id="acc-render-body">
+          <div class="field">
+            <span class="field-label">Colour mode</span>
+            <span class="select-wrap">
+              <select id="mode" aria-label="Colour mode">
+                <option value="mono">Monochrome</option>
+                <option value="fg">Colour — glyphs</option>
+                <option value="bg">Colour — background</option>
+                <option value="both">Colour — background + glyphs</option>
+              </select>
+              <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            </span>
+          </div>
+          <div class="field">
+            <span class="field-label">Font</span>
+            <span class="select-wrap">
+              <select id="font-family" aria-label="Font family">
+                <option value="Consolas, Menlo, monospace">Consolas / Menlo</option>
+                <option value="'JetBrains Mono', Consolas, monospace">JetBrains Mono</option>
+                <option value="'Courier New', Courier, monospace">Courier New</option>
+                <option value="'Fira Code', Consolas, monospace">Fira Code</option>
+                <option value="monospace">generic monospace</option>
+              </select>
+              <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+            </span>
+          </div>
           <label class="field">
-            <span>Repetitions</span>
-            <input type="number" id="text-repeat" min="1" max="30" value="3" aria-label="Repetitions">
+            <span class="field-label">Size <output id="fs-val" class="field-value">16</output><span class="unit">px</span></span>
+            <input type="range" id="font-size" min="8" max="40" step="1" value="16" aria-label="Font size">
           </label>
+          <div class="row2">
+            <div class="field">
+              <span class="field-label">Theme</span>
+              <span class="select-wrap">
+                <select id="theme" aria-label="Theme">
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+                <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+              </span>
+            </div>
+            <div class="field">
+              <span class="field-label">Background α</span>
+              <span class="color-wrap">
+                <input type="color" id="bg-color" value="#000000" aria-label="Canvas background colour">
+                <span class="color-hex" id="bg-color-hex">#000000</span>
+              </span>
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
 
-    <section class="group" id="video-group" style="display:none">
-      <h2>Video</h2>
-      <video id="vid-source" controls muted playsinline
-             style="width:100%;border-radius:8px;border:1px solid var(--border);margin-bottom:.75rem;background:#000"></video>
-      <label class="field">
-        <span>Clip <small>(from / to)</small></span>
-        <div class="range-dual">
-          <div class="dual-fill" id="vid-fill"></div>
-          <input type="range" id="vid-start" min="0" max="100" value="0" step="0.01" aria-label="Clip start">
-          <input type="range" id="vid-end" min="0" max="100" value="100" step="0.01" aria-label="Clip end">
-        </div>
-        <div class="dual-labels">
-          <span id="vid-from">0:00.0</span>
-          <span id="vid-to">0:00.0</span>
-        </div>
-      </label>
-      <div class="row2">
-        <label class="field">
-          <span>Framerate</span>
-          <select id="vid-fps" aria-label="Framerate">
-            <option value="5">5 fps</option>
-            <option value="10" selected>10 fps</option>
-            <option value="15">15 fps</option>
-            <option value="24">24 fps</option>
-            <option value="30">30 fps</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Speed</span>
-          <select id="vid-speed" aria-label="Playback speed">
-            <option value="0.25">0.25×</option>
-            <option value="0.5">0.5×</option>
-            <option value="1" selected>1×</option>
-            <option value="2">2×</option>
-            <option value="4">4×</option>
-          </select>
-        </label>
-      </div>
-      <div class="field vid-summary">
-        <span>Clip: <b id="vid-clip">—</b> · Animation: <b id="vid-anim">—</b> · Frames: <b id="vid-count">—</b></span>
-        <small class="hint">palette / dynamic range / text are applied on generation; colour mode is live</small>
-      </div>
-      <div class="btn-row">
-        <button id="btn-vid-generate" class="btn primary">Generate frames</button>
-        <button id="btn-vid-play" class="btn">▶ Play</button>
-      </div>
-    </section>
-
-    <section class="group">
-      <h2>Render</h2>
-
-      <label class="field">
-        <span>Mode</span>
-        <select id="mode" aria-label="Colour mode">
-          <option value="mono">Monochrome</option>
-          <option value="fg">Colour — glyphs</option>
-          <option value="bg">Colour — background</option>
-          <option value="both">Colour — background + glyphs</option>
-        </select>
-      </label>
-
-      <label class="field">
-        <span>Font</span>
-        <select id="font-family" aria-label="Font family">
-          <option value="Consolas, Menlo, monospace">Consolas / Menlo</option>
-          <option value="'JetBrains Mono', Consolas, monospace">JetBrains Mono</option>
-          <option value="'Courier New', Courier, monospace">Courier New</option>
-          <option value="'Fira Code', Consolas, monospace">Fira Code</option>
-          <option value="monospace">generic monospace</option>
-        </select>
-      </label>
-
-      <label class="field">
-        <span>Size <output id="fs-val" style="display:inline">16</output>px</span>
-        <input type="range" id="font-size" min="8" max="40" step="1" value="16" aria-label="Font size">
-      </label>
-
-      <div class="row2">
-        <label class="field">
-          <span>Theme</span>
-          <select id="theme" aria-label="Theme">
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Background</span>
-          <input type="color" id="bg-color" value="#000000" aria-label="Canvas background colour">
-        </label>
-      </div>
-    </section>
+    <div class="panel-foot">
+      <span class="live"><span class="dot" aria-hidden="true"></span>Live preview</span>
+      <span class="ver">w8rez v1.1.0</span>
+    </div>
   </aside>
 
   <!-- ─────────────── output ─────────────── -->
-  <section class="panel output">
-    <div class="toolbar">
+  <section class="stage">
+    <div class="stage-toolbar">
       <nav class="tabs" aria-label="Output view">
-        <button class="tab active" data-target="tab-preview" aria-pressed="true">Preview</button>
-        <button class="tab" data-target="tab-code" aria-pressed="false">HTML</button>
-        <button class="tab" data-target="tab-txt" aria-pressed="false">TXT</button>
+        <button type="button" class="tab active" data-target="tab-preview" aria-pressed="true">Preview</button>
+        <button type="button" class="tab" data-target="tab-code" aria-pressed="false">HTML</button>
+        <button type="button" class="tab" data-target="tab-txt" aria-pressed="false">TXT</button>
       </nav>
       <div class="tool-actions">
-        <button id="btn-vid-webm" class="btn" style="display:none">↓ .webm video</button>
-        <button id="btn-vid-mp4" class="btn" style="display:none">↓ .mp4 (ffmpeg)</button>
-        <button id="btn-vid-html" class="btn" style="display:none">↓ anim .html</button>
-        <button id="btn-copy" class="btn ghost">copy</button>
-        <button id="btn-txt" class="btn">↓ .txt</button>
-        <button id="btn-png" class="btn">↓ .png</button>
-        <button id="btn-html" class="btn primary">↓ .html</button>
-      </div>
-    </div>
-    <div id="meta" class="meta"></div>
-    <div id="frame-info" class="meta"></div>
-
-    <div id="tab-preview" class="tab-panel">
-      <div class="ascii-wrap">
-        <pre id="preview" aria-label="ASCII preview"></pre>
+        <button type="button" id="btn-copy" class="btn ghost"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>Copy</button>
+        <span class="divider" aria-hidden="true"></span>
+        <button type="button" id="btn-txt" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-file-text"/></svg>.txt</button>
+        <button type="button" id="btn-png" class="btn"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg>.png</button>
+        <button type="button" id="btn-html" class="btn primary"><svg class="icon" aria-hidden="true"><use href="#i-file-code"/></svg>.html</button>
+        <span class="divider" aria-hidden="true"></span>
+        <button type="button" id="btn-vid-webm" class="btn" style="display:none"><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg>.webm</button>
+        <button type="button" id="btn-vid-mp4" class="btn" style="display:none"><svg class="icon" aria-hidden="true"><use href="#i-clapper"/></svg>.mp4</button>
+        <button type="button" id="btn-vid-html" class="btn" style="display:none"><svg class="icon" aria-hidden="true"><use href="#i-file-play"/></svg>.anim</button>
       </div>
     </div>
 
-    <div id="tab-code" class="tab-panel" style="display:none">
-      <textarea id="code-out" spellcheck="false" readonly aria-label="Generated HTML"></textarea>
+    <div class="metabar">
+      <span id="meta" class="meta"></span>
+      <span id="frame-info" class="meta meta-right"></span>
     </div>
 
-    <div id="tab-txt" class="tab-panel" style="display:none">
-      <textarea id="txt-out" spellcheck="false" readonly aria-label="Generated plain text"></textarea>
+    <div class="stage-body">
+      <div id="tab-preview" class="tab-panel">
+        <figure class="preview-frame">
+          <span class="preview-badge"><span class="dot" aria-hidden="true"></span><span id="preview-badge-text">No file</span></span>
+          <div class="ascii-wrap">
+            <pre id="preview" aria-label="ASCII preview"></pre>
+            <canvas id="original-view" hidden aria-label="Original image"></canvas>
+          </div>
+          <button type="button" id="btn-view-original" class="ghost-chip" aria-pressed="false">
+            <svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg>View original
+          </button>
+          <div class="zoom" role="group" aria-label="Preview zoom">
+            <button type="button" id="zoom-out" class="zoom-btn" aria-label="Zoom out"><svg class="icon" aria-hidden="true"><use href="#i-zoom-out"/></svg></button>
+            <button type="button" id="zoom-fit" class="zoom-btn" aria-label="Fit to window"><svg class="icon" aria-hidden="true"><use href="#i-maximize"/></svg></button>
+            <button type="button" id="zoom-in" class="zoom-btn" aria-label="Zoom in"><svg class="icon" aria-hidden="true"><use href="#i-zoom-in"/></svg></button>
+          </div>
+        </figure>
+      </div>
+
+      <div id="tab-code" class="tab-panel" style="display:none">
+        <textarea id="code-out" spellcheck="false" readonly aria-label="Generated HTML"></textarea>
+      </div>
+
+      <div id="tab-txt" class="tab-panel" style="display:none">
+        <textarea id="txt-out" spellcheck="false" readonly aria-label="Generated plain text"></textarea>
+      </div>
+    </div>
+
+    <div class="stage-status">
+      <span id="status" class="status" role="status" aria-live="polite">Ready</span>
+      <a class="credit" href="https://github.com/kompetenzbolzen/AsciiMap" target="_blank" rel="noopener noreferrer">engine: AsciiMap (MIT)</a>
     </div>
   </section>
 
@@ -232,6 +385,7 @@
 <script src="js/ascii.js"></script>
 <script src="js/renderer.js"></script>
 <script src="js/eps.js"></script>
+<script src="js/ui.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

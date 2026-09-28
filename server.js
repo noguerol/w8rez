@@ -692,6 +692,17 @@ function handleApi(req, res, url) {
 /** Only these top-level directories are served. Everything else is 404. */
 const ALLOWED_TOP_DIRS = new Set(['js', 'css', 'vendor', 'samples', 'assets', 'icons']);
 
+/*
+ * Test hooks. The end-to-end suite (tests/e2e.sh) drives the page in a real
+ * browser and needs the generated fixtures to be reachable over HTTP. Opt in
+ * explicitly so a normal run keeps the tree locked down:
+ *
+ *   W8REZ_TEST_FIXTURES=1 node server.js
+ *
+ * It only adds a directory; the host allowlist, the dotfile rule, the
+ * containment checks and the extension allowlist still apply.
+ */
+if (process.env.W8REZ_TEST_FIXTURES === '1') ALLOWED_TOP_DIRS.add('tests');
 /** Only these root-level files are served; the package source stays private. */
 const ROOT_FILES = new Set(['index.html', 'favicon.ico', 'robots.txt']);
 
@@ -712,6 +723,22 @@ const STATIC_MIME = {
   '.md': 'text/markdown; charset=utf-8',
   '.webmanifest': 'application/manifest+json',
 };
+
+/* The end-to-end fixtures cover the non-web formats the app accepts; they are
+ * only reachable with W8REZ_TEST_FIXTURES=1, and only inside tests/. */
+if (process.env.W8REZ_TEST_FIXTURES === '1') {
+  Object.assign(STATIC_MIME, {
+    '.pdf': 'application/pdf',
+    '.eps': 'application/postscript',
+    '.ps': 'application/postscript',
+    '.mp4': 'video/mp4',
+    '.m4v': 'video/mp4',
+    '.webm': 'video/webm',
+    '.avi': 'video/x-msvideo',
+    '.mov': 'video/quicktime',
+    '.mkv': 'video/x-matroska',
+  });
+}
 
 /**
  * Serves a static file with defence in depth:

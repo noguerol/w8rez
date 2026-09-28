@@ -16,3 +16,13 @@ Thumbs.db
 .env.*
 *.pem
 *.key
+tests/fixtures/
+
+# punched-memory — never commit project-local memory
+pi.md
+pi.md.local
+.punched-memory.json
+.punched-memory/
+# t-plan: private runtime state — never commit or publish
+plan_*.md
+plan.md

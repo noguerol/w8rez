@@ -135,6 +135,20 @@ for pair in "btn-txt:txt" "btn-png:png" "btn-html:html"; do
 done
 
 agent-browser screenshot /tmp/w8rez-e2e-final.png >/dev/null 2>&1 && echo "  screenshot: /tmp/w8rez-e2e-final.png"
+
+# ── theme persistence across a real reload ──────────────────────────────
+THEME_NOW="$(agent-browser eval "document.documentElement.getAttribute('data-theme')" 2>/dev/null | tr -d '\"')"
+agent-browser eval "(function(){try{localStorage.setItem('w8rez:theme','light')}catch(e){}; return 'seeded'})()" >/dev/null 2>&1
+agent-browser reload >/dev/null 2>&1
+agent-browser wait 1200 >/dev/null 2>&1
+AFTER="$(agent-browser eval "document.documentElement.getAttribute('data-theme') + '|' + getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()" 2>/dev/null | tr -d '\"')"
+case "$AFTER" in
+  light\|\#ffffff) echo "  PASS  theme persisted across reload ($AFTER)" ;;
+  *) echo "  FAIL  theme did not persist across reload (was '$THEME_NOW', got '$AFTER')"; RC=1 ;;
+esac
+# leave the stored preference on dark so a fresh visit is unchanged
+agent-browser eval "(function(){try{localStorage.setItem('w8rez:theme','dark')}catch(e){}; return 'reset'})()" >/dev/null 2>&1
+
 agent-browser close >/dev/null 2>&1
 pkill -f "node server.js" >/dev/null 2>&1
 

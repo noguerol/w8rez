@@ -34,12 +34,16 @@ network.
 - **Four output formats** (plus three for video): plain text, a single-file
   HTML document, a rasterised PNG, and for video a self-contained HTML
   animation, a WebM recording, or a frame-exact MP4.
-- **A dark, monochrome interface.** A terminal-style, greyscale-only shell:
-  a fixed control panel (drop zone, conversion groups that expand on demand
-  with a live summary of their state) next to a stage with view tabs, the
-  export actions, conversion metadata, and a preview with *View original* and
-  zoom controls. Sharp corners, no rounded chrome, no colour noise — the only
-  colour on screen comes from your own image.
+- **Dark and light interfaces, both monochrome.** A terminal-style shell with
+  no colour of its own in either theme — the only colour on screen comes from
+  your own image. A fixed control panel (drop zone, conversion groups that
+  expand on demand with a live summary of their state) next to a stage with
+  view tabs, the export actions, conversion metadata, and a preview with
+  *View original* and zoom controls. The header toggle switches the whole
+  shell between dark and light (the *Theme* select in *Render & output* does
+  the same and stays in sync); the choice is remembered between visits, and
+  the preview canvas and the exports follow it. Sharp corners, no rounded
+  chrome, no colour noise.
 - **Private by design.** No telemetry, no CDNs, no webfonts, no accounts, no
   uploads. The helper server binds to `127.0.0.1`, and the browser side works
   without it.

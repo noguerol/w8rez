@@ -40,6 +40,10 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     PDF_PAGE_DEBOUNCE_MS: 250,
   };
 
+  /* Canvas background per theme. js/ui.js may publish its own copy
+   * (`UI.themeDefaults`), which wins when present. */
+  const THEME_BG = { dark: '#000000', light: '#ffffff' };
+
   /* ------------------------------------------------------------------ *
    *  State
    * ------------------------------------------------------------------ */
@@ -907,6 +911,25 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     applyPreviewStyles();
   }
 
+  /** Default canvas colour for a theme (the js/ui.js contract, with a
+   * local fallback while that module is unavailable). */
+  function themeBackground(theme) {
+    const defaults = (UI && UI.themeDefaults) || THEME_BG;
+    if (theme === 'light') return defaults.light || THEME_BG.light;
+    return defaults.dark || THEME_BG.dark;
+  }
+
+  /** Mirrors the canvas colour into its hex readout (js/ui.js owns the
+   * widget; the fallback covers the previous shell). */
+  function syncColorReadout() {
+    if (UI && UI.syncColorReadout) {
+      UI.syncColorReadout();
+      return;
+    }
+    const label = $('#bg-color-hex');
+    if (label) label.textContent = els.bgColor.value;
+  }
+
   /** Applies theme and background colour to the preview frame (live). */
   function applyPreviewStyles() {
     const light = els.theme.value === 'light';
@@ -1227,6 +1250,24 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     if (e && e.detail && e.detail.on) drawOriginalView();
   });
 
+  // theme → canvas background. js/ui.js dispatches this event when the
+  // theme changes and keeps <html data-theme> in sync. The canvas follows
+  // the new theme default only while the colour still holds the previous
+  // default (that is, the user has not picked a colour by hand).
+  let activeTheme = els.theme.value === 'light' ? 'light' : 'dark';
+  document.addEventListener('w8rez:theme', (e) => {
+    const theme = e && e.detail ? e.detail.theme : null;
+    if (theme !== 'light' && theme !== 'dark') return;
+    if (els.bgColor.value === themeBackground(activeTheme)) {
+      els.bgColor.value = themeBackground(theme);
+      syncColorReadout();
+    }
+    activeTheme = theme;
+    state.bgColor = els.bgColor.value;
+    applyPreviewStyles();
+    scheduleRender();
+  });
+
   // video: dual range, fps, speed, generation and playback
   function updateRangeUI() {
     if (!state.video) return;
@@ -1411,6 +1452,18 @@ import * as pdfjsLib from '../vendor/pdfjs/pdf.min.mjs';
     const z = parseFloat(UI.getZoom());
     if (isFinite(z) && z > 0) state.zoom = z;
   }
+
+  // first load in light mode: do not keep the dark canvas background
+  if (document.documentElement.getAttribute('data-theme') === 'light') {
+    activeTheme = 'light';
+    if (els.bgColor.value === THEME_BG.dark) {
+      els.bgColor.value = THEME_BG.light;
+      syncColorReadout();
+    }
+    state.bgColor = els.bgColor.value;
+    applyPreviewStyles();
+  }
+
   syncSummaries();
   updateBadge();
 })();

@@ -210,6 +210,20 @@
     return name || FALLBACK_BADGE;
   }
 
+  /** Default canvas backgrounds used by the two themes. */
+  const themeDefaults = { dark: '#000000', light: '#ffffff' };
+
+  /**
+   * The opposite theme: 'light' only comes from 'dark'; any other value
+   * (unknown, missing) resolves to 'dark'.
+   *
+   * @param {string} [current]
+   * @returns {'dark'|'light'}
+   */
+  function nextTheme(current) {
+    return current === 'dark' ? 'light' : 'dark';
+  }
+
   /* ------------------------------------------------------------------ *
    *  DOM wiring
    * ------------------------------------------------------------------ */
@@ -498,12 +512,48 @@
 
   /* ---- theme toggle ------------------------------------------------ */
 
-  function syncThemeToggle() {
+  /** Theme last applied by `applyTheme` (null before the first call). */
+  let lastTheme = null;
+
+  /** Look up an element in an explicit document (works before init()). */
+  function findIn(targetDoc, id) {
+    return targetDoc && typeof targetDoc.getElementById === 'function' ? targetDoc.getElementById(id) : null;
+  }
+
+  /** Theme currently in effect, read from the <select> or the tracker. */
+  function currentTheme() {
     const select = byId('theme');
-    const value = select && select.value === 'light' ? 'light' : 'dark';
-    const label = byId('btn-theme-label');
+    if (select && (select.value === 'dark' || select.value === 'light')) return select.value;
+    return lastTheme || 'dark';
+  }
+
+  /**
+   * Apply `theme` to the document: `data-theme`, the silent <select>, the
+   * toggle label/icon/aria, the stored preference and the `w8rez:theme`
+   * event. Unknown values normalise to nextTheme(value) ('dark'). The event
+   * is only re-dispatched when the theme actually changes.
+   *
+   * @param {string} [theme] 'dark' or 'light' (anything else normalises)
+   * @returns {'dark'|'light'} the theme that was applied
+   */
+  function applyTheme(theme) {
+    const value = theme === 'dark' || theme === 'light' ? theme : nextTheme(theme);
+    const changed = value !== lastTheme;
+    const target = typeof document !== 'undefined' && document ? document : null;
+    const owner = doc || target;
+
+    if (target && target.documentElement && typeof target.documentElement.setAttribute === 'function') {
+      target.documentElement.setAttribute('data-theme', value);
+    }
+
+    // Keep the <select> in sync silently: setting `.value` never fires change.
+    const select = findIn(owner, 'theme');
+    if (select) select.value = value;
+
+    const label = findIn(owner, 'btn-theme-label');
     if (label) label.textContent = value === 'light' ? 'Light' : 'Dark';
-    const button = byId('btn-theme-toggle');
+
+    const button = findIn(owner, 'btn-theme-toggle');
     if (button) {
       button.setAttribute('aria-pressed', value === 'light' ? 'true' : 'false');
       const use = typeof button.querySelector === 'function' ? button.querySelector('use') : null;
@@ -515,21 +565,56 @@
         }
       }
     }
+
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage) {
+        localStorage.setItem('w8rez:theme', value);
+      }
+    } catch (err) {
+      /* localStorage may be missing or full: the theme still applies. */
+    }
+
+    lastTheme = value;
+
+    if (changed && target && typeof target.dispatchEvent === 'function') {
+      fireCustom(target, 'w8rez:theme', { theme: value });
+    }
+
     return value;
   }
 
-  function flipTheme() {
+  /** Re-read label/icon/aria from the <select> via applyTheme (no re-event). */
+  function syncThemeToggle() {
     const select = byId('theme');
-    if (!select) return false;
-    select.value = select.value === 'light' ? 'dark' : 'light';
-    syncThemeToggle();
-    fire(select, 'change');
-    return true;
+    const requested = select && (select.value === 'dark' || select.value === 'light') ? select.value : currentTheme();
+    return applyTheme(requested);
+  }
+
+  function flipTheme() {
+    return applyTheme(nextTheme(currentTheme()));
+  }
+
+  /** Initial theme: stored preference when valid, else the OS colour scheme. */
+  function initialTheme() {
+    let stored = null;
+    try {
+      if (typeof localStorage !== 'undefined' && localStorage) stored = localStorage.getItem('w8rez:theme');
+    } catch (err) {
+      stored = null;
+    }
+    if (stored === 'dark' || stored === 'light') return stored;
+    try {
+      if (typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+    } catch (err) {
+      /* matchMedia unavailable. */
+    }
+    return 'dark';
   }
 
   /* ---- colour swatch readout --------------------------------------- */
 
-  function syncHex() {
+  /** Rewrite `#bg-color-hex` from the current value of `#bg-color`. */
+  function syncColorReadout() {
     const input = byId('bg-color');
     const label = byId('bg-color-hex');
     if (input && label) label.textContent = input.value;
@@ -550,7 +635,7 @@
     if (repeat) syncFieldOutput('text-repeat-val', repeat.value);
     syncSegmented('text-use');
     syncThemeToggle();
-    syncHex();
+    syncColorReadout();
   }
 
   /** Restore every panel control to its default (the Reset button). */
@@ -563,6 +648,8 @@
       fire(el, control.event);
     });
     syncProxies();
+    applyTheme('dark');
+    syncColorReadout();
     return true;
   }
 
@@ -658,8 +745,8 @@
 
     // (11) colour swatch readout
     const bgColor = byId('bg-color');
-    if (bgColor) bgColor.addEventListener('input', () => syncHex());
-    syncHex();
+    if (bgColor) bgColor.addEventListener('input', () => syncColorReadout());
+    syncColorReadout();
 
     return API;
   }
@@ -689,7 +776,19 @@
     setOriginalAvailable: setOriginalAvailable,
     syncThemeToggle: syncThemeToggle,
     reset: resetControls,
+    // theme + colour readout helpers
+    themeDefaults: themeDefaults,
+    nextTheme: nextTheme,
+    applyTheme: applyTheme,
+    syncColorReadout: syncColorReadout,
   };
+
+  // Startup: apply the initial theme before anything else is wired, so the
+  // <select>, label and icon already agree with the stored/OS preference and
+  // the panel never flashes the wrong colour scheme.
+  if (typeof document !== 'undefined' && document) {
+    applyTheme(initialTheme());
+  }
 
   // Browser convenience: wire up automatically unless the page (app.js) does
   // it first. `init()` is idempotent, so an explicit call stays safe.

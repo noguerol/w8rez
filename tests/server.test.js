@@ -184,7 +184,11 @@ async function main() {
   /* ── static serving rules ── */
   {
     const index = await req(base, '/');
-    ok('index served', index.status === 200 && index.buffer.toString().includes('<html lang="en">'));
+    const indexHtml = index.buffer.toString();
+    ok(
+      'index served',
+      index.status === 200 && indexHtml.includes('<html lang="en"') && indexHtml.includes('data-theme')
+    );
     ok(
       'index served with CSP',
       typeof index.headers.get('content-security-policy') === 'string'

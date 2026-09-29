@@ -195,16 +195,34 @@
       return spec.length + ' boxes @ ' + vw + '×' + vh + ' (conversion ' + convH + 'px)';
     });
 
-    await test('fidelity: greyscale tokens and sharp corners are in force', () => {
-      const rs = getComputedStyle(document.documentElement);
-      const token = (n) => rs.getPropertyValue(n).trim().toLowerCase();
-      const want = { '--bg': '#000000', '--card': '#0a0a0a', '--fg': '#fafafa', '--accent': '#fafafa', '--accent-fg': '#000000', '--border': '#262626', '--surface': '#1c1c1c' };
-      const bad = Object.entries(want).filter(([k, v]) => token(k) !== v).map(([k, v]) => k + '=' + token(k) + '≠' + v);
+    await test('fidelity: greyscale tokens and sharp corners are in force in both themes', async () => {
+      const UI = window.W8rez && window.W8rez.UI;
+      const root = document.documentElement;
+      const token = (n) => getComputedStyle(root).getPropertyValue(n).trim().toLowerCase();
+      const dark = { '--bg': '#000000', '--card': '#0a0a0a', '--fg': '#fafafa', '--accent': '#fafafa', '--accent-fg': '#000000', '--border': '#262626', '--surface': '#1c1c1c' };
+      const light = { '--bg': '#ffffff', '--card': '#f4f4f4', '--fg': '#111111', '--accent': '#111111', '--accent-fg': '#ffffff', '--border': '#d0d0d0', '--surface': '#e2e2e2' };
+      const check = (want, theme) => {
+        const bad = Object.entries(want).filter(([k, v]) => token(k) !== v).map(([k, v]) => theme + ' ' + k + '=' + token(k) + '≠' + v);
+        if (root.getAttribute('data-theme') !== theme) bad.push('data-theme: ' + root.getAttribute('data-theme'));
+        return bad;
+      };
+      // The suite must not depend on the OS preference (headless Chrome reports
+      // light), so pin dark first and let the theme test exercise the toggle.
+      if (UI && UI.applyTheme) UI.applyTheme('dark');
+      await sleep(250);
+      let bad = check(dark, 'dark');
+      if (UI && UI.applyTheme) {
+        UI.applyTheme('light');
+        await sleep(250);
+        bad = bad.concat(check(light, 'light'));
+        UI.applyTheme('dark');
+        await sleep(250);
+      }
       assert(bad.length === 0, bad.join(', '));
       const rounded = ['.panel-head', '.drop', '.btn', '.tab', '.zoom', '.preview-frame', '#file-card']
         .filter((s) => $(s) && parseFloat(getComputedStyle($(s)).borderTopLeftRadius) > 0);
       assert(rounded.length === 0, 'rounded corners on ' + rounded.join(','));
-      return 'tokens + square corners';
+      return Object.keys(dark).length + ' tokens × 2 themes + square corners';
     });
 
     await test('a11y: every control has an accessible name and the drop zone is focusable', () => {
@@ -415,21 +433,56 @@
       return 'ok';
     });
 
-    await test('theme: header toggle and the Render select stay in sync', async () => {
-      const btn = $('#btn-theme-toggle');
-      btn.click();
-      await sleep(300);
+    await test('theme: the header toggle switches the whole shell to light', async () => {
+      const root = document.documentElement;
+      const token = (n) => getComputedStyle(root).getPropertyValue(n).trim().toLowerCase();
+      const rgb = (sel, prop) => getComputedStyle($(sel))[prop];
+      const contrast = () => {
+        const parse = (s) => (s.match(/\d+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+        const lum = (c) => {
+          const [r, g, b] = c.map((v) => {
+            const x = v / 255;
+            return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4);
+          });
+          return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        };
+        const a = lum(parse(rgb('.appbar', 'color')));
+        const b = lum(parse(rgb('.appbar', 'backgroundColor')));
+        const [hi, lo] = a > b ? [a, b] : [b, a];
+        return (hi + 0.05) / (lo + 0.05);
+      };
+
+      const darkBg = token('--bg');
+      const darkRatio = contrast();
+
+      $('#btn-theme-toggle').click();
+      await sleep(400);
+      assert(root.getAttribute('data-theme') === 'light', 'data-theme: ' + root.getAttribute('data-theme'));
       assert($('#theme').value === 'light', 'select: ' + $('#theme').value);
       assert($('#btn-theme-label').textContent.trim() === 'Light', 'label: ' + $('#btn-theme-label').textContent);
-      btn.click();
-      await sleep(300);
-      assert($('#theme').value === 'dark', 'back: ' + $('#theme').value);
-      setControl($('#theme'), 'light', 'change');
-      await sleep(300);
-      assert($('#btn-theme-label').textContent.trim() === 'Light', 'toggle not synced from select');
-      setControl($('#theme'), 'dark', 'change');
-      await sleep(250);
-      return 'synced';
+      assert(token('--bg') === '#ffffff', 'light --bg: ' + token('--bg'));
+      assert(token('--fg') === '#111111', 'light --fg: ' + token('--fg'));
+      const shellRgb = rgb('.appbar', 'backgroundColor');
+      assert(/^rgb\((2[0-4]\d|1[6-9]\d),/.test(shellRgb), 'appbar not light: ' + shellRgb);
+      const ratio = contrast();
+      assert(ratio >= 4.5, 'contrast too low: ' + ratio.toFixed(2));
+      // the canvas and the glyphs must stay legible in light mode
+      assert($('#bg-color').value.toLowerCase() === '#ffffff', 'canvas: ' + $('#bg-color').value);
+      assert($('#bg-color-hex').textContent.trim().toLowerCase() === '#ffffff', 'hex: ' + $('#bg-color-hex').textContent);
+      const wrapBg = getComputedStyle($('.ascii-wrap')).backgroundColor;
+      assert(/^rgb\((2[0-4]\d|25[0-5]),/.test(wrapBg), 'canvas not light: ' + wrapBg);
+      assert(/^rgb\((\d|1\d|2[0-9]|3[0-9]|4[0-9]),/.test(rgb('#preview', 'color')), 'glyphs not dark: ' + rgb('#preview', 'color'));
+      // the choice is remembered
+      let stored = null;
+      try { stored = localStorage.getItem('w8rez:theme'); } catch (e) { stored = null; }
+      assert(stored === 'light', 'not persisted: ' + stored);
+
+      $('#btn-theme-toggle').click();
+      await sleep(400);
+      assert(root.getAttribute('data-theme') === 'dark', 'did not go back: ' + root.getAttribute('data-theme'));
+      assert(token('--bg') === darkBg, 'dark tokens not restored');
+      assert($('#bg-color').value.toLowerCase() === '#000000', 'canvas not restored: ' + $('#bg-color').value);
+      return 'dark ' + darkRatio.toFixed(1) + ':1 → light ' + ratio.toFixed(1) + ':1';
     });
 
     await test('background α: the canvas colour follows the picker', async () => {

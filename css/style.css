@@ -1,7 +1,8 @@
 /*
  * w8rez — application styles.
- * Dark monochrome terminal theme: white/grey on black, square corners,
- * local font stacks only (no network requests).
+ * Monochrome terminal theme: white/grey on black (dark, default) or its
+ * inverted light variant via [data-theme="light"], square corners, local
+ * font stacks only (no network requests).
  */
 
 /* ── tokens ──────────────────────────────────────────────────────────── */
@@ -31,6 +32,25 @@
   --s6: 24px;
 
   color-scheme: dark;
+}
+
+/* Light theme — the same monochrome scale, inverted. Toggled by the
+   data-theme attribute on <html>; dark stays the default via :root above.
+   Only the colour tokens are overridden (no fonts/spacing/radius). */
+:root[data-theme="light"] {
+  --bg: #ffffff;
+  --card: #f4f4f4;
+  --panel: #ececec;
+  --surface: #e2e2e2;
+  --border: #d0d0d0;
+  --border-hi: #a3a3a3;
+  --fg: #111111;
+  --muted: #4d4d4d;
+  --dim: #6b6b6b;
+  --accent: #111111;
+  --accent-fg: #ffffff;
+  --danger: #b30000;
+  color-scheme: light;
 }
 
 /* ── reset ───────────────────────────────────────────────────────────── */
@@ -1014,7 +1034,7 @@ input[type="color"]::-moz-color-swatch { border: 0; border-radius: 0; }
   display: block;
   width: 100%;
   max-height: 170px;
-  background: #000;
+  background: var(--bg);
   border: 1px solid var(--border);
   object-fit: contain;
 }
@@ -1214,7 +1234,7 @@ input[type="color"]::-moz-color-swatch { border: 0; border-radius: 0; }
   height: 100%;
   min-height: 0;
   margin: 0;
-  background: #000;
+  background: var(--bg);
   border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -1245,7 +1265,7 @@ input[type="color"]::-moz-color-swatch { border: 0; border-radius: 0; }
   min-height: 0;
   display: flex;
   overflow: auto;
-  background: #000;
+  background: var(--bg);
   border: 1px solid var(--border);
 }
 

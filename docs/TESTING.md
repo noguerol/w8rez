@@ -68,8 +68,8 @@ deliver, so the routing, decoding and render pipeline is the production one.
 - every control id that `js/app.js` requires is present;
 - **no external network dependency**: no remote stylesheets, scripts, images
   or iframes, and no webfont request (the offline promise);
-- **greyscale only**: every colour literal in the stylesheet is achromatic
-  (a red error colour is the single allowed exception);
+- **greyscale only**: every colour literal in the stylesheet is achromatic in
+  both themes (a red error colour is the single allowed exception);
 - every control has an accessible name; the drop zone is focusable and
   exposed as a button; the status line is an `aria-live` region; accordion
   headers expose `aria-expanded`;
@@ -85,7 +85,10 @@ deliver, so the routing, decoding and render pipeline is the production one.
   (a fixed seed must reproduce the same layout), repeat mode, stepper proxies;
 - render controls: font size, font family, colour mode;
 - tabs: the active panel is the only visible one and `aria-pressed` follows;
-- theme: the header toggle and the Render select stay in sync;
+- theme: the header toggle flips the shell tokens to light, `<html>` gets
+  `data-theme="light"`, the preview canvas and the glyph colour stay legible
+  on the light background, and the Render select stays in sync (the pure theme
+  helpers are covered by `npm run test:ui`);
 - background α: the canvas colour follows the picker;
 - zoom: in/out and Fit back to the base size;
 - *View original*: the source bitmap appears and toggles back;

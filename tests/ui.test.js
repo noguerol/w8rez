@@ -262,6 +262,41 @@ ok('formatBadge: "No file" without dimensions or name', () => {
   assert.strictEqual(UI.formatBadge({ name: '   ' }), 'No file');
 });
 
+/* ── themeDefaults / nextTheme ─────────────────────────────────────── */
+
+ok('nextTheme: toggles between the two themes', () => {
+  assert.strictEqual(UI.nextTheme('dark'), 'light');
+  assert.strictEqual(UI.nextTheme('light'), 'dark');
+});
+
+ok('nextTheme: unknown input normalises to dark', () => {
+  assert.strictEqual(UI.nextTheme(undefined), 'dark');
+  assert.strictEqual(UI.nextTheme('weird'), 'dark');
+  assert.strictEqual(UI.nextTheme(null), 'dark');
+});
+
+ok('themeDefaults: carries the two canvas colours', () => {
+  assert.strictEqual(UI.themeDefaults.light, '#ffffff');
+  assert.strictEqual(UI.themeDefaults.dark, '#000000');
+});
+
+ok('applyTheme: exists and normalises without a DOM', () => {
+  assert.strictEqual(typeof UI.applyTheme, 'function');
+  assert.strictEqual(UI.applyTheme(), 'dark');
+  assert.strictEqual(UI.applyTheme('light'), 'light');
+  assert.strictEqual(UI.applyTheme('weird'), 'dark');
+});
+
+ok('applyTheme: undefined and unknown input resolve to dark', () => {
+  assert.strictEqual(UI.applyTheme(undefined), 'dark');
+  assert.strictEqual(UI.applyTheme(null), 'dark');
+});
+
+ok('syncColorReadout: exists and is inert without a DOM', () => {
+  assert.strictEqual(typeof UI.syncColorReadout, 'function');
+  assert.strictEqual(UI.syncColorReadout(), false);
+});
+
 /* ── module shape (Node, no DOM) ───────────────────────────────────── */
 
 ok('module: loads in Node without touching the DOM', () => {
@@ -273,7 +308,7 @@ ok('module: exposes the pure helpers and the component API', () => {
   ['clampStep', 'zoomStep', 'summarizeText', 'summarizeVideo', 'summarizeRender', 'formatBadge',
     'init', 'openAccordion', 'closeAccordion', 'toggleAccordion', 'syncSegmented', 'setFileCard',
     'setBadge', 'setSummaries', 'getZoom', 'isOriginalView', 'setOriginalAvailable',
-    'syncThemeToggle'].forEach((name) => {
+    'syncThemeToggle', 'applyTheme', 'syncColorReadout'].forEach((name) => {
     assert.strictEqual(typeof UI[name], 'function', name + ' is not a function');
   });
   assert(Array.isArray(UI.zoomLevels), 'zoomLevels is not an array');

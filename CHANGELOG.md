@@ -6,6 +6,35 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-09-29
+
+The theme toggle now switches the whole interface, and the choice is
+remembered across visits.
+
+### Added
+
+- **Real light theme.** The header theme button now switches the whole
+  interface, not just the preview: a monochrome light palette (`--bg #ffffff`,
+  `--card #f4f4f4`, `--panel #ececec`, `--surface #e2e2e2`, `--border #d0d0d0`,
+  `--border-hi #a3a3a3`, `--fg #111111`, `--muted #4d4d4d`, `--dim #6b6b6b`,
+  `--accent #111111`, `--accent-fg #ffffff`) applied through the `data-theme`
+  attribute on `<html>`. No hue in either theme, and every text/background
+  pair in the light palette clears WCAG AA (worst case 4.85:1).
+- **Remembered theme.** The choice is persisted in `localStorage` under
+  `w8rez:theme`, and the initial value is taken from `prefers-color-scheme`.
+- **Theme-aware output.** The preview canvas background and the exported theme
+  follow the selected theme.
+
+### Changed
+
+- The *Theme* `<select>` in *Render & output* stays in sync with the header
+  theme button (either control updates the other).
+
+### Fixed
+
+- In light mode the preview was unreadable because the canvas stayed black;
+  the canvas now follows the light background and the glyphs stay legible.
+
 ## [1.1.0] — 2026-09-29
 
 Interface redesign: the whole shell is now a dark, monochrome (greyscale-only)

@@ -433,7 +433,7 @@
       return 'ok';
     });
 
-    await test('theme: the header toggle switches the whole shell to light', async () => {
+    await test('theme: the header toggle restyles the shell only, never the artwork', async () => {
       const root = document.documentElement;
       const token = (n) => getComputedStyle(root).getPropertyValue(n).trim().toLowerCase();
       const rgb = (sel, prop) => getComputedStyle($(sel))[prop];
@@ -452,37 +452,59 @@
         return (hi + 0.05) / (lo + 0.05);
       };
 
+      // There must be a real artwork on screen to protect.
+      await load('samples/demo.png', 'demo.png', 'image/png');
+      await waitFor(() => previewText().length > 50);
+      const artBefore = hash(previewText());
+      const canvasBefore = $('#bg-color').value;
+      const artworkThemeBefore = $('#theme').value;
+      const wrapBefore = rgb('.ascii-wrap', 'backgroundColor');
+      const glyphBefore = rgb('#preview', 'color');
       const darkBg = token('--bg');
       const darkRatio = contrast();
 
       $('#btn-theme-toggle').click();
-      await sleep(400);
+      await sleep(500);
+
+      // 1. the interface changes
       assert(root.getAttribute('data-theme') === 'light', 'data-theme: ' + root.getAttribute('data-theme'));
-      assert($('#theme').value === 'light', 'select: ' + $('#theme').value);
-      assert($('#btn-theme-label').textContent.trim() === 'Light', 'label: ' + $('#btn-theme-label').textContent);
       assert(token('--bg') === '#ffffff', 'light --bg: ' + token('--bg'));
       assert(token('--fg') === '#111111', 'light --fg: ' + token('--fg'));
+      assert($('#btn-theme-label').textContent.trim() === 'Light', 'label: ' + $('#btn-theme-label').textContent);
       const shellRgb = rgb('.appbar', 'backgroundColor');
       assert(/^rgb\((2[0-4]\d|1[6-9]\d),/.test(shellRgb), 'appbar not light: ' + shellRgb);
       const ratio = contrast();
       assert(ratio >= 4.5, 'contrast too low: ' + ratio.toFixed(2));
-      // the canvas and the glyphs must stay legible in light mode
-      assert($('#bg-color').value.toLowerCase() === '#ffffff', 'canvas: ' + $('#bg-color').value);
-      assert($('#bg-color-hex').textContent.trim().toLowerCase() === '#ffffff', 'hex: ' + $('#bg-color-hex').textContent);
-      const wrapBg = getComputedStyle($('.ascii-wrap')).backgroundColor;
-      assert(/^rgb\((2[0-4]\d|25[0-5]),/.test(wrapBg), 'canvas not light: ' + wrapBg);
-      assert(/^rgb\((\d|1\d|2[0-9]|3[0-9]|4[0-9]),/.test(rgb('#preview', 'color')), 'glyphs not dark: ' + rgb('#preview', 'color'));
-      // the choice is remembered
+
+      // 2. the artwork is untouched
+      assert($('#bg-color').value === canvasBefore, 'canvas colour changed: ' + $('#bg-color').value);
+      assert($('#theme').value === artworkThemeBefore, 'artwork theme changed: ' + $('#theme').value);
+      assert(rgb('.ascii-wrap', 'backgroundColor') === wrapBefore, 'canvas background changed: ' + rgb('.ascii-wrap', 'backgroundColor'));
+      assert(rgb('#preview', 'color') === glyphBefore, 'glyph colour changed: ' + rgb('#preview', 'color'));
+      assert(hash(previewText()) === artBefore, 'the rendered art changed');
+
       let stored = null;
       try { stored = localStorage.getItem('w8rez:theme'); } catch (e) { stored = null; }
       assert(stored === 'light', 'not persisted: ' + stored);
 
+      // 3. and back, still without touching the artwork
       $('#btn-theme-toggle').click();
-      await sleep(400);
+      await sleep(500);
       assert(root.getAttribute('data-theme') === 'dark', 'did not go back: ' + root.getAttribute('data-theme'));
       assert(token('--bg') === darkBg, 'dark tokens not restored');
-      assert($('#bg-color').value.toLowerCase() === '#000000', 'canvas not restored: ' + $('#bg-color').value);
-      return 'dark ' + darkRatio.toFixed(1) + ':1 → light ' + ratio.toFixed(1) + ':1';
+      assert($('#bg-color').value === canvasBefore, 'canvas colour changed on the way back');
+      assert(hash(previewText()) === artBefore, 'the art changed on the way back');
+
+      // 4. the artwork theme is a separate control and still works
+      setControl($('#theme'), 'light', 'change');
+      const glyphFlipped = await waitFor(() => rgb('#preview', 'color') !== glyphBefore, 4000);
+      assert(glyphFlipped, 'the artwork theme select no longer affects the glyphs');
+      setControl($('#theme'), artworkThemeBefore, 'change');
+      await sleep(300);
+      assert(hash(previewText()) === artBefore, 'the art did not come back');
+      assert(root.getAttribute('data-theme') === 'dark', 'artwork theme leaked into the interface');
+
+      return 'ui ' + darkRatio.toFixed(1) + ':1 → ' + ratio.toFixed(1) + ':1, artwork byte-identical';
     });
 
     await test('background α: the canvas colour follows the picker', async () => {

@@ -65,7 +65,7 @@
         </ul>
       </div>
     </details>
-    <button type="button" id="btn-theme-toggle" class="theme-toggle" aria-pressed="false" title="Switch the preview between dark and light">
+    <button type="button" id="btn-theme-toggle" class="theme-toggle" aria-pressed="false" aria-label="Switch the interface between dark and light (does not affect your artwork)" title="Switch the interface between dark and light (does not affect your artwork)">
       <svg class="icon" aria-hidden="true"><use href="#i-moon"/></svg>
       <span id="btn-theme-label">Dark</span>
     </button>
@@ -293,9 +293,9 @@
           </label>
           <div class="row2">
             <div class="field">
-              <span class="field-label">Theme</span>
+              <span class="field-label" title="Theme of the preview glyphs and of the exported document. It does not change the interface — use the button in the header for that.">Artwork theme</span>
               <span class="select-wrap">
-                <select id="theme" aria-label="Theme">
+                <select id="theme" aria-label="Artwork theme (preview and exports)" title="Theme of the preview glyphs and of the exported document. It does not change the interface — use the button in the header for that.">
                   <option value="dark">Dark</option>
                   <option value="light">Light</option>
                 </select>

@@ -85,10 +85,11 @@ deliver, so the routing, decoding and render pipeline is the production one.
   (a fixed seed must reproduce the same layout), repeat mode, stepper proxies;
 - render controls: font size, font family, colour mode;
 - tabs: the active panel is the only visible one and `aria-pressed` follows;
-- theme: the header toggle flips the shell tokens to light, `<html>` gets
-  `data-theme="light"`, the preview canvas and the glyph colour stay legible
-  on the light background, and the Render select stays in sync (the pure theme
-  helpers are covered by `npm run test:ui`);
+- theme: the header toggle switches only the interface — the shell tokens flip
+  to light and `<html>` gets `data-theme="light"` — while the artwork is
+  untouched: same `#bg-color`, same `<select id="theme">` value, same glyph
+  colour and same preview content (the pure theme helpers are covered by
+  `npm run test:ui`);
 - background α: the canvas colour follows the picker;
 - zoom: in/out and Fit back to the base size;
 - *View original*: the source bitmap appears and toggles back;

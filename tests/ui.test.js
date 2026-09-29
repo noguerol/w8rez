@@ -7,6 +7,11 @@
  * of the module (`init`) is intentionally untested here — it needs a browser
  * and is covered by tests/e2e.browser.js. Requiring the module in Node must
  * work without a DOM, which is asserted below.
+ *
+ * The interface theme helpers (`applyTheme`, `nextTheme`, `themeDefaults`,
+ * `syncColorReadout`) are exercised here too. Note that `applyTheme` only
+ * touches the interface: the artwork <select id="theme"> of the Render &
+ * output group belongs to js/app.js and is never read or written by ui.js.
  */
 'use strict';
 
@@ -290,6 +295,15 @@ ok('applyTheme: exists and normalises without a DOM', () => {
 ok('applyTheme: undefined and unknown input resolve to dark', () => {
   assert.strictEqual(UI.applyTheme(undefined), 'dark');
   assert.strictEqual(UI.applyTheme(null), 'dark');
+});
+
+ok('applyTheme: lives off the artwork <select> and never throws without a DOM', () => {
+  assert.strictEqual(typeof UI.applyTheme, 'function');
+  assert.strictEqual(typeof UI.syncColorReadout, 'function');
+  // No DOM in Node: the calls must stay inert instead of throwing.
+  assert.strictEqual(UI.applyTheme('light'), 'light');
+  assert.strictEqual(UI.applyTheme('nonsense'), 'dark');
+  assert.strictEqual(UI.syncColorReadout(), false);
 });
 
 ok('syncColorReadout: exists and is inert without a DOM', () => {

@@ -510,7 +510,14 @@
     return state.originalAvailable;
   }
 
-  /* ---- theme toggle ------------------------------------------------ */
+  /* ---- theme toggle (interface only) --------------------------------- */
+
+  /*
+   * The interface theme toggled here is INDEPENDENT from the artwork theme
+   * chosen by the <select id="theme"> in the Render & output group. That
+   * <select> is owned by js/app.js and drives the glyph colour of the preview
+   * and of the exports; this module never reads or writes it.
+   */
 
   /** Theme last applied by `applyTheme` (null before the first call). */
   let lastTheme = null;
@@ -520,18 +527,29 @@
     return targetDoc && typeof targetDoc.getElementById === 'function' ? targetDoc.getElementById(id) : null;
   }
 
-  /** Theme currently in effect, read from the <select> or the tracker. */
+  /**
+   * Interface theme currently in effect. Prefers the value last applied by
+   * `applyTheme`, then falls back to `data-theme` on the document root and
+   * finally to 'dark'. The artwork <select id="theme"> is never consulted.
+   */
   function currentTheme() {
-    const select = byId('theme');
-    if (select && (select.value === 'dark' || select.value === 'light')) return select.value;
-    return lastTheme || 'dark';
+    if (lastTheme === 'dark' || lastTheme === 'light') return lastTheme;
+    const target = typeof document !== 'undefined' && document ? document : null;
+    const attr = target && target.documentElement && typeof target.documentElement.getAttribute === 'function'
+      ? target.documentElement.getAttribute('data-theme')
+      : null;
+    return attr === 'dark' || attr === 'light' ? attr : 'dark';
   }
 
   /**
-   * Apply `theme` to the document: `data-theme`, the silent <select>, the
+   * Apply `theme` to the INTERFACE: `data-theme` on the document root, the
    * toggle label/icon/aria, the stored preference and the `w8rez:theme`
    * event. Unknown values normalise to nextTheme(value) ('dark'). The event
    * is only re-dispatched when the theme actually changes.
+   *
+   * The interface theme is independent from the artwork theme of the
+   * <select id="theme"> in the Render & output group, which belongs to
+   * js/app.js; this function never reads or writes that <select>.
    *
    * @param {string} [theme] 'dark' or 'light' (anything else normalises)
    * @returns {'dark'|'light'} the theme that was applied
@@ -545,10 +563,6 @@
     if (target && target.documentElement && typeof target.documentElement.setAttribute === 'function') {
       target.documentElement.setAttribute('data-theme', value);
     }
-
-    // Keep the <select> in sync silently: setting `.value` never fires change.
-    const select = findIn(owner, 'theme');
-    if (select) select.value = value;
 
     const label = findIn(owner, 'btn-theme-label');
     if (label) label.textContent = value === 'light' ? 'Light' : 'Dark';
@@ -583,11 +597,14 @@
     return value;
   }
 
-  /** Re-read label/icon/aria from the <select> via applyTheme (no re-event). */
+  /**
+   * Re-apply the INTERFACE theme so the label/icon/aria agree with the current
+   * state (no `w8rez:theme` event, since the value does not change). Reads from
+   * `lastTheme`/`data-theme` through `currentTheme`, never from the artwork
+   * <select id="theme">.
+   */
   function syncThemeToggle() {
-    const select = byId('theme');
-    const requested = select && (select.value === 'dark' || select.value === 'light') ? select.value : currentTheme();
-    return applyTheme(requested);
+    return applyTheme(currentTheme());
   }
 
   function flipTheme() {
@@ -735,8 +752,7 @@
     // (9) theme toggle
     const themeButton = byId('btn-theme-toggle');
     if (themeButton) themeButton.addEventListener('click', () => flipTheme());
-    const themeSelect = byId('theme');
-    if (themeSelect) themeSelect.addEventListener('change', () => syncThemeToggle());
+    // The artwork <select id="theme"> belongs to js/app.js: no listener here.
     syncThemeToggle();
 
     // (10) reset
@@ -783,9 +799,9 @@
     syncColorReadout: syncColorReadout,
   };
 
-  // Startup: apply the initial theme before anything else is wired, so the
-  // <select>, label and icon already agree with the stored/OS preference and
-  // the panel never flashes the wrong colour scheme.
+  // Startup: apply the initial interface theme before anything else is wired,
+  // so the label and icon already agree with the stored/OS preference and the
+  // panel never flashes the wrong colour scheme.
   if (typeof document !== 'undefined' && document) {
     applyTheme(initialTheme());
   }

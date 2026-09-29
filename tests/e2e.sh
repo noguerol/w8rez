@@ -65,9 +65,15 @@ done
 
 # ── server ──────────────────────────────────────────────────────────────
 say "2/5  server on $URL"
-pkill -f "node server.js" >/dev/null 2>&1
-sleep 1
-(nohup env PORT="$PORT" W8REZ_TEST_FIXTURES=1 node server.js >"$LOG" 2>&1 &)
+if curl -fsS --max-time 2 "$URL/api/status" >/dev/null 2>&1; then
+  echo "     ! something is already listening on $PORT — pick another port"; exit 1
+fi
+# Only ever stop the process this script started: a bare `pkill -f "node server.js"`
+# would also kill a server the user is running (e.g. on 8080).
+SRV_PID_FILE=/tmp/w8rez-e2e-server.pid
+rm -f "$SRV_PID_FILE"
+(nohup env PORT="$PORT" W8REZ_TEST_FIXTURES=1 node server.js >"$LOG" 2>&1 & echo $! > "$SRV_PID_FILE")
+SRV_PID="$(cat "$SRV_PID_FILE" 2>/dev/null)"
 for _ in $(seq 1 25); do
   sleep 0.4
   if curl -fsS "$URL/api/status" >/tmp/w8rez-e2e-status.json 2>/dev/null; then break; fi
@@ -135,7 +141,6 @@ for pair in "btn-txt:txt" "btn-png:png" "btn-html:html"; do
 done
 
 agent-browser screenshot /tmp/w8rez-e2e-final.png >/dev/null 2>&1 && echo "  screenshot: /tmp/w8rez-e2e-final.png"
-
 # ── theme persistence across a real reload ──────────────────────────────
 THEME_NOW="$(agent-browser eval "document.documentElement.getAttribute('data-theme')" 2>/dev/null | tr -d '\"')"
 agent-browser eval "(function(){try{localStorage.setItem('w8rez:theme','light')}catch(e){}; return 'seeded'})()" >/dev/null 2>&1
@@ -150,7 +155,8 @@ esac
 agent-browser eval "(function(){try{localStorage.setItem('w8rez:theme','dark')}catch(e){}; return 'reset'})()" >/dev/null 2>&1
 
 agent-browser close >/dev/null 2>&1
-pkill -f "node server.js" >/dev/null 2>&1
+[ -n "$SRV_PID" ] && kill "$SRV_PID" 2>/dev/null
+rm -f "$SRV_PID_FILE"
 
 say "exit $RC"
 exit $RC

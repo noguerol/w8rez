@@ -6,6 +6,25 @@ adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.1] — 2026-09-29
+
+The header theme button now affects only the interface, never the artwork.
+
+### Changed
+
+- The artwork control in the *Render & output* accordion is now labelled
+  **Artwork theme** (it selects the glyph theme of the preview and of the
+  exported document, so it is no longer confused with the header button), and
+  the header button now carries an explanatory `title`.
+
+### Fixed
+
+- The header theme button changes **only the interface** (`data-theme`) and no
+  longer touches the artwork theme: it does not move the `#bg-color` canvas
+  colour, nor the artwork *Theme* `<select>` (`#theme`), nor the preview glyph
+  colour, nor the exports. In `[1.2.0]` the button also moved the `<select>`
+  and the canvas background, which altered the user's visualisation.
+
 ## [1.2.0] — 2026-09-29
 
 The theme toggle now switches the whole interface, and the choice is
